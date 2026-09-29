@@ -5,10 +5,12 @@
   "type": "module",
   "exports": {
     ".": {
+      "@commerce/source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
     "./bootstrap": {
+      "@commerce/source": "./src/bootstrap.ts",
       "types": "./dist/bootstrap.d.ts",
       "default": "./dist/bootstrap.js"
     }

@@ -10,8 +10,7 @@
   },
   "scripts": {
     "build": "pnpm -r run build",
-    "build:packages": "pnpm -r --filter \"./packages/**\" run build",
-    "typecheck": "pnpm run build:packages && pnpm -r run typecheck",
+    "typecheck": "pnpm -r run typecheck",
     "lint": "eslint . --max-warnings=0",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -19,7 +18,7 @@
     "contracts:check": "pnpm --filter @commerce/contracts run check",
     "evals": "pnpm --filter @commerce/evals run evals",
     "openspec:validate": "pnpm dlx @fission-ai/openspec@1.11.0 validate --all --strict --no-interactive",
-    "verify": "pnpm run lint && pnpm run format:check && pnpm run build && pnpm run typecheck && pnpm run test && pnpm run contracts:check && pnpm run evals",
+    "verify": "pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm run build && pnpm run test && pnpm run contracts:check && pnpm run evals",
     "infra:up": "docker compose -f infra/compose.yaml --env-file .env up -d --wait",
     "infra:up:tracing": "docker compose -f infra/compose.yaml --env-file .env --profile tracing up -d --wait",
     "infra:down": "docker compose -f infra/compose.yaml --env-file .env --profile tracing down",

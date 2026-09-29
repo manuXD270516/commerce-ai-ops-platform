@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": {
+      "@commerce/source": "./src/index.ts",
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },

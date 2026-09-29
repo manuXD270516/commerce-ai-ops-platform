@@ -5,6 +5,7 @@
     "lib": ["DOM", "DOM.Iterable", "ES2023"],
     "module": "ESNext",
     "moduleResolution": "Bundler",
+    "customConditions": ["@commerce/source"],
     "types": ["node"],
     "jsx": "react-jsx",
     "allowJs": false,
