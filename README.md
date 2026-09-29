@@ -2,21 +2,52 @@
 
 Plataforma de operaciones e-commerce con APIs de dominio, búsqueda híbrida, workflows asistidos por IA y acciones auditables mediante MCP.
 
-**Estado: diseño del MVP; no hay implementación.** Datos de demostración sintéticos, USD, una región logística y dos tenants de prueba para verificar aislamiento. Transportistas y notificaciones serán simulados y visibles como tales. PostgreSQL contendrá datos relacionales operativos; las respuestas no dependerán de hechos inventados por el modelo.
+**Estado: M0 (bootstrap) completado; M1–M11 pendientes.** Existe el monorepo con esqueletos de web, API, worker y servidor MCP, entorno local, CI, harness de evals y tracing. No hay lógica de dominio, migraciones de negocio, llamadas a modelos ni recursos cloud. La página web es un scaffold técnico, no la consola de M9. Datos de demostración sintéticos, USD, una región logística y dos tenants de prueba para verificar aislamiento. Transportistas y notificaciones serán simulados y visibles como tales. PostgreSQL contendrá datos relacionales operativos; las respuestas no dependerán de hechos inventados por el modelo.
 
 ## Documentación
 
 - [Propuesta MVP](openspec/changes/define-commerce-ops-mvp/proposal.md)
-- [Arquitectura, bounded contexts y decisiones](openspec/changes/define-commerce-ops-mvp/design.md)
+- [Arquitectura, bounded contexts y decisiones](openspec/changes/define-commerce-ops-mvp/design.md) (revisión previa a M0 en §6)
 - [Modelo de datos](docs/data-model.md)
 - [Agentes, permisos MCP y seguridad](docs/agents-security-mcp.md)
 - [RAG y evaluaciones](docs/rag-evals.md)
 - [Roadmap M0–M11](docs/roadmap.md)
-- [Tareas pendientes](openspec/changes/define-commerce-ops-mvp/tasks.md)
+- [Tareas](openspec/changes/define-commerce-ops-mvp/tasks.md)
 - [Plan y estado de verificación](openspec/changes/define-commerce-ops-mvp/verification.md)
+
+## Estructura
+
+```text
+apps/web                  Next.js 16: página de estado y /api/status (diagnóstico web → API)
+apps/api                  NestJS 12: /healthz, /readyz, /v1/status
+apps/worker               BullMQ: cola de diagnóstico sin payload de negocio
+apps/commerce-mcp-server  Sólo probes; el endpoint MCP autenticado llega en M5
+packages/contracts        JSON Schema 2020-12, OpenAPI 3.1, tipos generados, correlation id
+packages/domain           Servicios de aplicación desde M1 (sin frameworks ni IA)
+packages/ai               Adaptadores de proveedor desde M6 (hoy sólo ProviderMode)
+packages/telemetry        Logs JSON, correlación, OpenTelemetry y probes
+evals                     Fixtures versionadas, gates EXPECTED y reportes
+infra                     Compose local y smoke
+```
+
+## Desarrollo local
+
+Requisitos: Node 22.23.1 (`.nvmrc`), pnpm 12.4.2 y Docker con Compose. Desde un clone limpio:
+
+```powershell
+pnpm install --frozen-lockfile
+Copy-Item .env.example .env          # Linux/macOS: cp .env.example .env
+pnpm run verify                      # lint, formato, typecheck, build, tests, contratos, evals
+pnpm run openspec:validate
+pnpm run infra:up:tracing            # PostgreSQL + pgvector, Redis y Jaeger en 127.0.0.1
+pnpm run smoke -- --tracing          # arranca las cuatro apps y verifica la correlación
+pnpm run infra:down
+```
+
+`pnpm run infra:up` levanta sólo PostgreSQL y Redis; en ese caso ejecutar `pnpm run smoke` sin `--tracing`. Para arrancar las apps a mano tras `pnpm run build`: `pnpm start:api`, `pnpm start:worker`, `pnpm start:mcp` y `pnpm start:web` (http://127.0.0.1:3000). Los reportes se escriben en `evals/reports/` y `.smoke/`, ambos ignorados por git.
 
 ## Flujo de trabajo
 
-Cada feature sigue proposal → spec → design → tasks → implementation → verification. El change inicial define el contrato transversal del MVP y su ejecución incremental. Cualquier variación funcional requiere actualizar estos artefactos antes de implementar; nuevas capacidades requieren su propio change. Los delta specs permanecen en el change hasta verificar y archivar. No se declara M0 completado por haber redactado documentación.
+Cada feature sigue proposal → spec → design → tasks → implementation → verification. El change inicial define el contrato transversal del MVP y su ejecución incremental. Cualquier variación funcional requiere actualizar estos artefactos antes de implementar; nuevas capacidades requieren su propio change. Los delta specs permanecen en el change hasta verificar y archivar.
 
-No se han instalado dependencias, generado aplicaciones, provisionado cloud ni llamado proveedores de IA. Los umbrales de evaluación son objetivos propuestos, no resultados medidos.
+Los umbrales de evaluación son objetivos propuestos (EXPECTED), no resultados medidos.

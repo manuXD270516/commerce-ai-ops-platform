@@ -1,7 +1,7 @@
 ## 1. M0 — Bootstrap
-- [ ] 1.1 Crear monorepo y apps previstas, fijar versiones y lockfile; verificar arranque/build/typecheck (evaluation-observability).
-- [ ] 1.2 Configurar entorno local PostgreSQL/pgvector y Redis, secretos de ejemplo y CI; registrar smoke reproducible (evaluation-observability).
-- [ ] 1.3 Crear harness de fixtures/evals y tracing inicial con reportes EXPECTED/SIMULATED/MEASURED (evaluation-observability).
+- [x] 1.1 Crear monorepo y apps previstas, fijar versiones y lockfile; verificar arranque/build/typecheck (evaluation-observability).
+- [x] 1.2 Configurar entorno local PostgreSQL/pgvector y Redis, secretos de ejemplo y CI; registrar smoke reproducible (evaluation-observability).
+- [x] 1.3 Crear harness de fixtures/evals y tracing inicial con reportes EXPECTED/SIMULATED/MEASURED (evaluation-observability).
 
 ## 2. M1 — Commerce domain model
 - [ ] 2.1 Implementar migraciones, FKs compuestas, importes, snapshots y estados del modelo; probar migración en BD vacía (commerce-domain).
