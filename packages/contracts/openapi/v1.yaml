@@ -1,11 +1,10 @@
 openapi: 3.1.0
 info:
   title: commerce-ai-ops-platform API
-  version: 0.0.0-m0
+  version: 0.1.0
   description: >-
-    M0 bootstrap. Only operational probes and a diagnostic status endpoint exist; business
-    endpoints are added by their milestones. Schemas are canonical JSON Schema 2020-12 files
-    in ../schemas.
+    REST v1. Identity for the local demo is X-Tenant-Id + X-Subject-Id resolved against
+    memberships. OIDC is the cloud target in M11.
   license:
     name: UNLICENSED
     identifier: UNLICENSED
@@ -15,7 +14,11 @@ servers:
 security: []
 tags:
   - name: operations
-    description: Liveness, readiness and diagnostics. No business data.
+  - name: catalog
+  - name: orders
+  - name: inventory
+  - name: support
+  - name: agents
 paths:
   /healthz:
     get:
@@ -73,19 +76,276 @@ paths:
             application/json:
               schema:
                 $ref: '../schemas/service-status.schema.json'
+  /v1/products:
+    get:
+      operationId: listProducts
+      summary: List published SKUs with filters and cursor pagination
+      tags: [catalog]
+      parameters:
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/SubjectHeader'
+        - { name: category, in: query, schema: { type: string } }
+        - { name: currency, in: query, schema: { type: string, enum: [USD] } }
+        - { name: price_lt, in: query, schema: { type: integer, minimum: 0 } }
+        - { name: ram_gb, in: query, schema: { type: integer, minimum: 1 } }
+        - { name: region, in: query, schema: { type: string } }
+        - { name: cursor, in: query, schema: { type: string } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50 } }
+      responses:
+        '200':
+          description: Page of published SKUs
+          content:
+            application/json:
+              schema:
+                $ref: '../schemas/product-list.schema.json'
+        '400':
+          $ref: '#/components/responses/Error'
+  /v1/products/{id}:
+    get:
+      operationId: getProduct
+      summary: Get a product and its published SKUs
+      tags: [catalog]
+      parameters:
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/SubjectHeader'
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Product and published SKUs
+          content:
+            application/json:
+              schema:
+                $ref: '../schemas/product-list.schema.json'
+        '404':
+          $ref: '#/components/responses/Error'
+  /v1/inventory/{sku}:
+    get:
+      operationId: getInventory
+      summary: Get availability for a SKU
+      tags: [inventory]
+      parameters:
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/SubjectHeader'
+        - { name: sku, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: region, in: query, schema: { type: string } }
+      responses:
+        '200':
+          description: Availability
+          content:
+            application/json:
+              schema:
+                $ref: '../schemas/inventory.schema.json'
+        '404':
+          $ref: '#/components/responses/Error'
+  /v1/orders/{id}:
+    get:
+      operationId: getOrder
+      summary: Get an order owned by the caller
+      tags: [orders]
+      parameters:
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/SubjectHeader'
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Order with immutable snapshots
+          content:
+            application/json:
+              schema:
+                $ref: '../schemas/order.schema.json'
+        '404':
+          $ref: '#/components/responses/Error'
+  /v1/orders/{id}/shipping:
+    get:
+      operationId: getShippingStatus
+      summary: Get per-package shipping status
+      tags: [orders]
+      parameters:
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/SubjectHeader'
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Per-package shipping status
+          content:
+            application/json:
+              schema:
+                $ref: '../schemas/shipping-status.schema.json'
+        '404':
+          $ref: '#/components/responses/Error'
+  /v1/anomalies:
+    get:
+      operationId: listAnomalies
+      summary: List deduplicated inventory anomalies
+      tags: [inventory]
+      parameters:
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/SubjectHeader'
+      responses:
+        '200':
+          description: Deduplicated inventory alerts
+  /v1/support-tickets:
+    post:
+      operationId: createSupportTicket
+      summary: Create a support ticket with explicit consent
+      tags: [support]
+      parameters:
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/SubjectHeader'
+        - {
+            name: Idempotency-Key,
+            in: header,
+            required: true,
+            schema: { type: string, minLength: 8, maxLength: 128 },
+          }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [customer_id, category, summary, confirmed]
+              properties:
+                customer_id: { type: string, format: uuid }
+                order_id: { type: string, format: uuid }
+                category: { type: string }
+                summary: { type: string }
+                confirmed: { type: boolean }
+      responses:
+        '201':
+          description: Ticket created or replayed
+        '400':
+          $ref: '#/components/responses/Error'
+  /v1/action-requests:
+    post:
+      operationId: createActionRequest
+      summary: Request a privileged order action
+      tags: [orders]
+      parameters:
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/SubjectHeader'
+        - { name: Idempotency-Key, in: header, required: true, schema: { type: string } }
+      responses:
+        '201':
+          description: Action request pending approval
+  /v1/approvals/{id}/decision:
+    post:
+      operationId: decideApproval
+      summary: Approve or reject an action request
+      tags: [orders]
+      parameters:
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/SubjectHeader'
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Decision recorded
+  /v1/orders/{id}/actions:
+    post:
+      operationId: executeOrderAction
+      summary: Execute an approved order action
+      tags: [orders]
+      parameters:
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/SubjectHeader'
+        - { name: Idempotency-Key, in: header, required: true, schema: { type: string } }
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Cancellation requested
+        '409':
+          $ref: '#/components/responses/Error'
+  /v1/agent-runs:
+    post:
+      operationId: createAgentRun
+      summary: Start an agent run
+      tags: [agents]
+      parameters:
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/SubjectHeader'
+      responses:
+        '202':
+          description: Run accepted
+          content:
+            application/json:
+              schema:
+                $ref: '../schemas/agent-run.schema.json'
+  /v1/agent-runs/{id}:
+    get:
+      operationId: getAgentRun
+      summary: Get durable agent run state
+      tags: [agents]
+      parameters:
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/SubjectHeader'
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Durable run state
+          content:
+            application/json:
+              schema:
+                $ref: '../schemas/agent-run.schema.json'
+  /v1/agent-runs/{id}/events:
+    get:
+      operationId: streamAgentRunEvents
+      summary: Stream agent run events (SSE)
+      tags: [agents]
+      parameters:
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+        - $ref: '#/components/parameters/TenantHeader'
+        - $ref: '#/components/parameters/SubjectHeader'
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: Last-Event-ID, in: header, schema: { type: string } }
+      responses:
+        '200':
+          description: SSE of durable run events
 components:
   parameters:
     CorrelationIdHeader:
       name: X-Correlation-Id
       in: header
       required: false
-      description: Accepted when it matches the pattern; otherwise the server generates a new one.
       schema:
         type: string
         pattern: '^[A-Za-z0-9._-]{8,64}$'
+    TenantHeader:
+      name: X-Tenant-Id
+      in: header
+      required: true
+      schema:
+        type: string
+    SubjectHeader:
+      name: X-Subject-Id
+      in: header
+      required: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 128
   headers:
     CorrelationId:
       description: Correlation id used in structured logs and trace attributes.
       schema:
         type: string
         pattern: '^[A-Za-z0-9._-]{8,64}$'
+  responses:
+    Error:
+      description: Stable domain error
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/error.schema.json'

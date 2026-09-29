@@ -1,0 +1,10 @@
+export const POLICY_VERSION = 'policy.v1';
+export const ANOMALY_RULE_VERSION = 'anomaly.v1';
+export const EMBEDDING_MODEL = 'local-hash-v1';
+export const EMBEDDING_DIM = 32;
+export const MAX_PAGE = 50;
+export const STALE_TRACKING_MS = 6 * 60 * 60 * 1000;
+export const ESCALATION_DELAY_MS = 48 * 60 * 60 * 1000;
+export const APPROVAL_TTL_MS = 30 * 60 * 1000;
+export const LEAD_TIME_DAYS = 7;
+export const UNUSUAL_ORDER_MIN_OBS = 20;

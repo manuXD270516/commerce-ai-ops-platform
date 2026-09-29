@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://commerce-ai-ops.local/schemas/shipping-status.schema.json",
+  "title": "ShippingStatus",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["order_id", "order_status", "shipments", "observed_at", "source"],
+  "properties": {
+    "order_id": { "type": "string", "format": "uuid" },
+    "order_status": { "type": "string" },
+    "shipments": {
+      "type": "array",
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "status",
+          "tracking_ref",
+          "stale",
+          "source_mode",
+          "items",
+          "last_observed_at"
+        ],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "status": { "type": "string" },
+          "tracking_ref": { "type": "string" },
+          "stale": { "type": "boolean" },
+          "source_mode": { "type": "string", "const": "simulated" },
+          "last_observed_at": { "type": "string", "format": "date-time" },
+          "items": {
+            "type": "array",
+            "maxItems": 20,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["order_item_id", "quantity"],
+              "properties": {
+                "order_item_id": { "type": "string", "format": "uuid" },
+                "quantity": { "type": "integer", "minimum": 1 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "observed_at": { "type": "string", "format": "date-time" },
+    "source": { "type": "string", "const": "sql" }
+  }
+}

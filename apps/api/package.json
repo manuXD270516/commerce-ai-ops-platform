@@ -10,7 +10,9 @@
     "start": "node --env-file-if-exists=../../.env --import ./dist/instrumentation.js dist/main.js"
   },
   "dependencies": {
+    "@commerce/ai": "workspace:*",
     "@commerce/contracts": "workspace:*",
+    "@commerce/domain": "workspace:*",
     "@commerce/telemetry": "workspace:*",
     "@nestjs/common": "12.1.0",
     "@nestjs/core": "12.1.0",

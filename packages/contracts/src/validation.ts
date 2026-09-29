@@ -8,6 +8,12 @@ const addFormats = addFormatsModule as unknown as (ajv: Ajv2020) => Ajv2020;
 export const SCHEMA_IDS = {
   healthReport: 'https://commerce-ai-ops.local/schemas/health-report.schema.json',
   serviceStatus: 'https://commerce-ai-ops.local/schemas/service-status.schema.json',
+  error: 'https://commerce-ai-ops.local/schemas/error.schema.json',
+  productList: 'https://commerce-ai-ops.local/schemas/product-list.schema.json',
+  order: 'https://commerce-ai-ops.local/schemas/order.schema.json',
+  shippingStatus: 'https://commerce-ai-ops.local/schemas/shipping-status.schema.json',
+  inventory: 'https://commerce-ai-ops.local/schemas/inventory.schema.json',
+  agentRun: 'https://commerce-ai-ops.local/schemas/agent-run.schema.json',
 } as const;
 
 export type SchemaName = keyof typeof SCHEMA_IDS;
@@ -15,6 +21,12 @@ export type SchemaName = keyof typeof SCHEMA_IDS;
 const SCHEMA_FILES: Record<SchemaName, string> = {
   healthReport: '../schemas/health-report.schema.json',
   serviceStatus: '../schemas/service-status.schema.json',
+  error: '../schemas/error.schema.json',
+  productList: '../schemas/product-list.schema.json',
+  order: '../schemas/order.schema.json',
+  shippingStatus: '../schemas/shipping-status.schema.json',
+  inventory: '../schemas/inventory.schema.json',
+  agentRun: '../schemas/agent-run.schema.json',
 };
 
 export function loadSchema(name: SchemaName): Record<string, unknown> {

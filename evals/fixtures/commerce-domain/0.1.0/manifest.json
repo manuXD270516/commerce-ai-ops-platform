@@ -1,0 +1,11 @@
+{
+  "id": "commerce-domain",
+  "version": "0.1.0",
+  "kind": "synthetic",
+  "files": [
+    {
+      "path": "seed.json",
+      "sha256": "4d6b71cd639c972ff4613c90f7f158a6cc2ef87a84b0795c06cf0b2abb4c3333"
+    }
+  ]
+}

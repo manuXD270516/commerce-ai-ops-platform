@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://commerce-ai-ops.local/schemas/product-list.schema.json",
+  "title": "ProductList",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["items", "next_cursor", "observed_at", "source", "version"],
+  "properties": {
+    "items": {
+      "type": "array",
+      "maxItems": 50,
+      "items": { "$ref": "#/$defs/CatalogSku" }
+    },
+    "next_cursor": { "type": ["string", "null"] },
+    "observed_at": { "type": "string", "format": "date-time" },
+    "source": { "type": "string", "const": "sql" },
+    "version": { "type": "string", "minLength": 1 }
+  },
+  "$defs": {
+    "CatalogSku": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "product_id",
+        "sku_code",
+        "title",
+        "category",
+        "price_minor",
+        "currency",
+        "available",
+        "region",
+        "observed_at"
+      ],
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "product_id": { "type": "string", "format": "uuid" },
+        "sku_code": { "type": "string", "minLength": 1 },
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "price_minor": { "type": "integer", "minimum": 0 },
+        "currency": { "type": "string", "const": "USD" },
+        "ram_gb": { "type": ["integer", "null"] },
+        "cpu_family": { "type": ["string", "null"] },
+        "available": { "type": "integer", "minimum": 0 },
+        "region": { "type": "string" },
+        "observed_at": { "type": "string", "format": "date-time" }
+      }
+    }
+  }
+}

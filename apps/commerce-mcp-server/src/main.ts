@@ -7,9 +7,9 @@ const version = (createRequire(import.meta.url)('../package.json') as { version:
 const port = Number(process.env.MCP_PORT ?? 3003);
 const host = process.env.MCP_HOST ?? '127.0.0.1';
 
-const server = createMcpServer(version);
+const server = createMcpServer(version, process.env.DATABASE_URL);
 server.listen(port, host, () => {
-  logger.info({ host, port, version, mcp_endpoint: 'not-exposed-until-M5' }, 'mcp server ready');
+  logger.info({ host, port, version, protocol: '2025-06-18' }, 'mcp server ready');
 });
 
 async function shutdown(signal: string): Promise<void> {

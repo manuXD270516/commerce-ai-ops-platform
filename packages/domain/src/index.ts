@@ -1,17 +1,24 @@
-/**
- * Application services per bounded context (docs/architecture.md §1) start in M1. This package must stay
- * framework-agnostic and must not import @commerce/ai: business rules never depend on a model.
- */
-export const BOUNDED_CONTEXTS = [
-  'catalog',
-  'inventory',
-  'orders',
-  'fulfillment',
-  'customers',
-  'support',
-  'knowledge',
-  'ai-operations',
-  'access-governance',
-] as const;
-
-export type BoundedContext = (typeof BOUNDED_CONTEXTS)[number];
+export { BOUNDED_CONTEXTS, type BoundedContext } from './contexts.js';
+export * from './access.js';
+export * from './actors.js';
+export * from './anomalies.js';
+export * from './approvals.js';
+export * from './catalog.js';
+export * from './constants.js';
+export * from './customers.js';
+export * from './db.js';
+export * from './embed.js';
+export * from './errors.js';
+export * from './fixture-ids.js';
+export * from './fulfillment.js';
+export * from './idempotency.js';
+export * from './inventory.js';
+export * from './knowledge.js';
+export * from './migrate.js';
+export * from './orders.js';
+export * from './pii.js';
+export * from './probe.js';
+export * from './runs.js';
+export * from './seed.js';
+export * from './tickets.js';
+export * from './uow.js';

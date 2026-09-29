@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://commerce-ai-ops.local/schemas/inventory.schema.json",
+  "title": "Inventory",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "sku_id",
+    "available",
+    "on_hand",
+    "reserved",
+    "safety_stock",
+    "region",
+    "observed_at",
+    "source"
+  ],
+  "properties": {
+    "sku_id": { "type": "string", "format": "uuid" },
+    "available": { "type": "integer" },
+    "on_hand": { "type": "integer", "minimum": 0 },
+    "reserved": { "type": "integer", "minimum": 0 },
+    "safety_stock": { "type": "integer", "minimum": 0 },
+    "region": { "type": "string" },
+    "observed_at": { "type": "string", "format": "date-time" },
+    "source": { "type": "string", "const": "sql" }
+  }
+}

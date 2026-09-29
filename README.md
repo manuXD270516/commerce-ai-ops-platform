@@ -2,7 +2,7 @@
 
 Plataforma de operaciones e-commerce con APIs de dominio, búsqueda híbrida, workflows asistidos por IA y acciones auditables mediante MCP.
 
-**Estado: M0 (bootstrap) completado; M1–M11 pendientes.** Existe el monorepo con esqueletos de web, API, worker y servidor MCP, entorno local, CI, harness de evals y tracing. No hay lógica de dominio, migraciones de negocio, llamadas a modelos ni recursos cloud. La página web es un scaffold técnico, no la consola de M9. Datos de demostración sintéticos, USD, una región logística y dos tenants de prueba para verificar aislamiento. Transportistas y notificaciones serán simulados y visibles como tales. PostgreSQL contendrá datos relacionales operativos; las respuestas no dependerán de hechos inventados por el modelo.
+**Estado: M0 (bootstrap) y M1 (modelo de dominio) completados; M2–M11 en curso.** Existe el monorepo con web, API, worker y servidor MCP, entorno local, CI, harness de evals y tracing, y un modelo relacional multi-tenant con RLS, snapshots, outbox, auditoría e idempotencia (`pnpm db:migrate`, `pnpm db:seed`). Hay código preliminar de milestones posteriores que aún no está verificado contra sus changes. No hay llamadas a modelos de terceros ni recursos cloud. La página web es un scaffold técnico, no la consola de M9. Datos de demostración sintéticos, USD, una región logística y dos tenants de prueba para verificar aislamiento. Transportistas y notificaciones serán simulados y visibles como tales. PostgreSQL contendrá datos relacionales operativos; las respuestas no dependerán de hechos inventados por el modelo.
 
 ## Documentación
 

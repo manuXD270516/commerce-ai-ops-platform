@@ -19,6 +19,8 @@
     "evals": "pnpm --filter @commerce/evals run evals",
     "openspec:validate": "pnpm dlx @fission-ai/openspec@1.11.0 validate --all --strict --no-interactive",
     "verify": "pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm run build && pnpm run test && pnpm run contracts:check && pnpm run evals",
+    "db:migrate": "pnpm --filter @commerce/domain run migrate",
+    "db:seed": "pnpm --filter @commerce/domain run seed",
     "infra:up": "docker compose -f infra/compose.yaml --env-file .env up -d --wait",
     "infra:up:tracing": "docker compose -f infra/compose.yaml --env-file .env --profile tracing up -d --wait",
     "infra:down": "docker compose -f infra/compose.yaml --env-file .env --profile tracing down",

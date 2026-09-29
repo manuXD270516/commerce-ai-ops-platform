@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://commerce-ai-ops.local/schemas/agent-run.schema.json",
+  "title": "AgentRun",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "status", "observed_at"],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "status": {
+      "type": "string",
+      "enum": ["QUEUED", "RUNNING", "WAITING_HUMAN", "COMPLETED", "FAILED", "CANCELLED"]
+    },
+    "intent": { "type": ["string", "null"] },
+    "observed_at": { "type": "string", "format": "date-time" }
+  }
+}

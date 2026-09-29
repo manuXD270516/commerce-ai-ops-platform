@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://commerce-ai-ops.local/schemas/error.schema.json",
+  "title": "ApiError",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["code", "message", "correlation_id"],
+  "properties": {
+    "code": {
+      "type": "string",
+      "enum": [
+        "VALIDATION_ERROR",
+        "NOT_FOUND",
+        "FORBIDDEN",
+        "CONFLICT",
+        "APPROVAL_REQUIRED",
+        "BUDGET_EXCEEDED",
+        "DEPENDENCY_UNAVAILABLE"
+      ]
+    },
+    "message": { "type": "string", "minLength": 1, "maxLength": 512 },
+    "correlation_id": { "type": "string", "pattern": "^[A-Za-z0-9._-]{8,64}$" }
+  }
+}

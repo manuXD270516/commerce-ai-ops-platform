@@ -154,7 +154,7 @@ try {
     method: 'POST',
     body: '{}',
   });
-  check('commerce-mcp-server exposes no MCP endpoint before M5', mcp.status === 404);
+  check('commerce-mcp-server requires authentication on /mcp', mcp.status === 401);
 
   const jobId = `${runId}-job`;
   const requireFromWorker = createRequire(join(root, 'apps', 'worker', 'package.json'));
