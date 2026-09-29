@@ -1,0 +1,22 @@
+schema: spec-driven
+
+context: |
+  Proyecto: commerce-ai-ops-platform. Idioma: español.
+  Fase actual: diseño únicamente; detenerse antes de implementar.
+  MVP: Next.js, NestJS modular, PostgreSQL + pgvector, Redis y LangGraph JS.
+  PostgreSQL es la fuente de verdad; reglas y autorización determinísticas.
+  MCP: READ, WRITE y PRIVILEGED; modelo sin autoridad para aprobar acciones.
+  Datos sintéticos; proveedores logísticos simulados y etiquetados.
+  Toda feature: proposal -> spec -> design -> tasks -> implementation -> verification.
+  Mantener headings estructurales de OpenSpec en inglés y requisitos SHALL.
+  Nunca presentar objetivos de evals o simulaciones como mediciones reales.
+
+rules:
+  proposal:
+    - Explicitar alcance, exclusiones y capabilities.
+  specs:
+    - Incluir escenarios negativos, permisos y criterios observables.
+  design:
+    - Separar lógica determinística, interpretación IA y autoridad humana.
+  tasks:
+    - Vincular tareas a capabilities y evidencia de verificación.
