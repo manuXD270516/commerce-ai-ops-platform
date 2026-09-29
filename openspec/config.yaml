@@ -2,7 +2,8 @@ schema: spec-driven
 
 context: |
   Proyecto: commerce-ai-ops-platform. Idioma: español.
-  Fase actual: diseño únicamente; detenerse antes de implementar.
+  Fase actual: M0 bootstrap (tareas 1.x); diseño revisado el 2026-09-29.
+  No implementar M1 ni posteriores sin instrucción explícita.
   MVP: Next.js, NestJS modular, PostgreSQL + pgvector, Redis y LangGraph JS.
   PostgreSQL es la fuente de verdad; reglas y autorización determinísticas.
   MCP: READ, WRITE y PRIVILEGED; modelo sin autoridad para aprobar acciones.

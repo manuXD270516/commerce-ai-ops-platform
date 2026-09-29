@@ -6,6 +6,10 @@ Fase: documentación previa a implementación. Proposal, delta specs, design y t
 
 Validación documental ejecutada el 2026-09-23: `openspec validate define-commerce-ops-mvp --strict` terminó con exit code 0 y resultado `Change 'define-commerce-ops-mvp' is valid`. La validación de formato no demuestra comportamiento del sistema.
 
+## Revisión de diseño previa a M0
+
+Realizada el 2026-09-29, requisito "Diseño revisado" de M0 en docs/roadmap.md. Alcance: coherencia entre design.md, docs/ y specs, y decisiones que bloqueaban el bootstrap (gestor y workspaces, runtime, versiones de Next.js/NestJS/LangGraph JS, persistencia y migraciones, formato de contratos, estrategia de tests, observabilidad, entorno local y CI). Resultado: 16 decisiones registradas en design.md §6, ninguna altera comportamiento ni alcance funcional. Pendiente derivado: reformular el escenario "Documentation-only delivery" antes de archivar.
+
 ## Matriz de trazabilidad prevista
 
 | Capability | Milestones/tareas | Evidencia que exigirá implementación |
