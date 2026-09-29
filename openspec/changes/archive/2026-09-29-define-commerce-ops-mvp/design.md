@@ -61,7 +61,7 @@ LangGraph JS permite checkpoints e interrupciones; se usará un grafo explícito
 
 OpenAI y Anthropic se compararán en M6 con el mismo dataset, salida estructurada, latencia, tokens y costo. El adaptador será neutral; modelo, versión de prompt y modelo de embeddings se fijarán antes de medir. No se presupone ganador ni paridad de herramientas. Un cambio de proveedor exige reeval; no habrá fallback silencioso de modelo para autorizar acciones. Esta entrega no selecciona IDs comerciales ni contrata servicios.
 
-Supervisor = router + scheduler determinístico y clasificador acotado cuando haga falta. No decide precios, SLA, stock, identidad o permisos mediante lenguaje natural. Los detalles de especialistas están en [agentes y seguridad](../../../docs/agents-security-mcp.md).
+Supervisor = router + scheduler determinístico y clasificador acotado cuando haga falta. No decide precios, SLA, stock, identidad o permisos mediante lenguaje natural. Los detalles de especialistas están en [agentes y seguridad](../../../../docs/agents-security-mcp.md).
 
 ### 4. Interfaces y ejecución
 
