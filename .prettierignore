@@ -1,0 +1,11 @@
+pnpm-lock.yaml
+**/dist/
+**/.next/
+**/next-env.d.ts
+**/src/generated/
+coverage/
+evals/reports/
+.smoke/
+openspec/
+docs/
+README.md

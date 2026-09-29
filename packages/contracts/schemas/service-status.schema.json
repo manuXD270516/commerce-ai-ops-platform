@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://commerce-ai-ops.local/schemas/service-status.schema.json",
+  "title": "ServiceStatus",
+  "description": "Diagnostic response of GET /v1/status. Echoes the correlation id so a caller can find the request in structured logs.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["service", "version", "status", "correlation_id", "observed_at"],
+  "properties": {
+    "service": { "type": "string", "const": "api" },
+    "version": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "status": { "type": "string", "const": "ok" },
+    "correlation_id": { "type": "string", "pattern": "^[A-Za-z0-9._-]{8,64}$" },
+    "observed_at": { "type": "string", "format": "date-time" }
+  }
+}

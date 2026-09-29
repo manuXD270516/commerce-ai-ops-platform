@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://commerce-ai-ops.local/schemas/eval-report.schema.json",
+  "title": "EvalReport",
+  "description": "Evaluation or smoke report. Every result declares whether it is an EXPECTED target, a SIMULATED run or a MEASURED run.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "run", "results", "summary"],
+  "properties": {
+    "schema_version": { "const": "0.1.0" },
+    "run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "suite", "started_at", "finished_at", "commit", "environment", "target"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[A-Za-z0-9._-]{8,80}$" },
+        "suite": { "type": "string", "minLength": 1 },
+        "started_at": { "type": "string", "format": "date-time" },
+        "finished_at": { "type": "string", "format": "date-time" },
+        "commit": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["sha", "dirty"],
+          "properties": {
+            "sha": { "type": "string", "pattern": "^([0-9a-f]{40}|unknown)$" },
+            "dirty": { "type": "boolean" }
+          }
+        },
+        "environment": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["node", "platform", "arch", "ci"],
+          "properties": {
+            "node": { "type": "string" },
+            "platform": { "type": "string" },
+            "arch": { "type": "string" },
+            "ci": { "type": "boolean" }
+          }
+        },
+        "target": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "mode", "description"],
+          "properties": {
+            "id": { "type": "string", "minLength": 1 },
+            "mode": { "enum": ["real", "simulated", "none"] },
+            "description": { "type": "string", "minLength": 1 }
+          }
+        },
+        "dataset": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "version", "sha256", "cases"],
+          "properties": {
+            "id": { "type": "string" },
+            "version": { "type": "string" },
+            "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+            "cases": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "results": { "type": "array", "items": { "$ref": "#/$defs/Result" } },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["expected", "simulated", "measured", "failed"],
+      "properties": {
+        "expected": { "type": "integer", "minimum": 0 },
+        "simulated": { "type": "integer", "minimum": 0 },
+        "measured": { "type": "integer", "minimum": 0 },
+        "failed": { "type": "integer", "minimum": 0 }
+      }
+    }
+  },
+  "$defs": {
+    "Threshold": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["operator", "value"],
+      "properties": {
+        "operator": { "enum": [">=", "<=", "<", ">", "=="] },
+        "value": { "type": "number" }
+      }
+    },
+    "Result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["metric", "dimension", "status", "unit", "source"],
+      "properties": {
+        "metric": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+        "dimension": { "type": "string", "minLength": 1 },
+        "status": { "enum": ["EXPECTED", "SIMULATED", "MEASURED"] },
+        "unit": { "type": "string", "minLength": 1 },
+        "source": { "type": "string", "minLength": 1 },
+        "threshold": { "$ref": "#/$defs/Threshold" },
+        "value": { "type": "number" },
+        "numerator": { "type": "integer", "minimum": 0 },
+        "denominator": { "type": "integer", "minimum": 1 },
+        "passed": { "type": "boolean" },
+        "notes": { "type": "string" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "status": { "const": "EXPECTED" } } },
+          "then": {
+            "required": ["threshold"],
+            "properties": {
+              "threshold": true,
+              "value": false,
+              "numerator": false,
+              "denominator": false,
+              "passed": false
+            }
+          },
+          "else": {
+            "required": ["value", "denominator"],
+            "properties": { "value": true, "denominator": true }
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,91 @@
+openapi: 3.1.0
+info:
+  title: commerce-ai-ops-platform API
+  version: 0.0.0-m0
+  description: >-
+    M0 bootstrap. Only operational probes and a diagnostic status endpoint exist; business
+    endpoints are added by their milestones. Schemas are canonical JSON Schema 2020-12 files
+    in ../schemas.
+  license:
+    name: UNLICENSED
+    identifier: UNLICENSED
+servers:
+  - url: http://localhost:3001
+    description: Local development
+security: []
+tags:
+  - name: operations
+    description: Liveness, readiness and diagnostics. No business data.
+paths:
+  /healthz:
+    get:
+      operationId: getLiveness
+      tags: [operations]
+      summary: Process liveness
+      responses:
+        '200':
+          description: Process is running
+          headers:
+            X-Correlation-Id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '../schemas/health-report.schema.json'
+  /readyz:
+    get:
+      operationId: getReadiness
+      tags: [operations]
+      summary: Readiness including PostgreSQL, pgvector availability and Redis
+      responses:
+        '200':
+          description: All dependencies reachable
+          headers:
+            X-Correlation-Id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '../schemas/health-report.schema.json'
+        '503':
+          description: At least one dependency is unreachable
+          headers:
+            X-Correlation-Id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '../schemas/health-report.schema.json'
+  /v1/status:
+    get:
+      operationId: getServiceStatus
+      tags: [operations]
+      summary: Diagnostic status echoing the correlation id
+      parameters:
+        - $ref: '#/components/parameters/CorrelationIdHeader'
+      responses:
+        '200':
+          description: API reachable
+          headers:
+            X-Correlation-Id:
+              $ref: '#/components/headers/CorrelationId'
+          content:
+            application/json:
+              schema:
+                $ref: '../schemas/service-status.schema.json'
+components:
+  parameters:
+    CorrelationIdHeader:
+      name: X-Correlation-Id
+      in: header
+      required: false
+      description: Accepted when it matches the pattern; otherwise the server generates a new one.
+      schema:
+        type: string
+        pattern: '^[A-Za-z0-9._-]{8,64}$'
+  headers:
+    CorrelationId:
+      description: Correlation id used in structured logs and trace attributes.
+      schema:
+        type: string
+        pattern: '^[A-Za-z0-9._-]{8,64}$'

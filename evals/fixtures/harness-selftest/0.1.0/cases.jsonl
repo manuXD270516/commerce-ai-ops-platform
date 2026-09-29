@@ -1,0 +1,12 @@
+{"id":"corr-001","suite":"correlation-contract","input":"smoke-1234abcd","expected":"client"}
+{"id":"corr-002","suite":"correlation-contract","input":"a.b_c-12","expected":"client"}
+{"id":"corr-003","suite":"correlation-contract","input":"short","expected":"generated"}
+{"id":"corr-004","suite":"correlation-contract","input":"contains spaces here","expected":"generated"}
+{"id":"corr-005","suite":"correlation-contract","input":"line\nbreak-injection","expected":"generated"}
+{"id":"corr-006","suite":"correlation-contract","input":"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx","expected":"generated"}
+{"id":"corr-007","suite":"correlation-contract","input":null,"expected":"generated"}
+{"id":"corr-008","suite":"correlation-contract","input":"<script>alert(1)</script>","expected":"generated"}
+{"id":"sim-001","suite":"simulated-selftest","input":"case-a","expected":"label-a","simulated_output":"label-a"}
+{"id":"sim-002","suite":"simulated-selftest","input":"case-b","expected":"label-b","simulated_output":"label-b"}
+{"id":"sim-003","suite":"simulated-selftest","input":"case-c","expected":"label-c","simulated_output":"label-c"}
+{"id":"sim-004","suite":"simulated-selftest","input":"case-d","expected":"label-d","simulated_output":"label-x"}

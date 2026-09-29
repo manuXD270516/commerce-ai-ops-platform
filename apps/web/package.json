@@ -1,0 +1,25 @@
+{
+  "name": "@commerce/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "next build",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "start": "next start --port 3000 --hostname 127.0.0.1"
+  },
+  "dependencies": {
+    "@commerce/contracts": "workspace:*",
+    "@commerce/telemetry": "workspace:*",
+    "@opentelemetry/api": "1.9.1",
+    "next": "16.3.6",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "vitest": "5.0.2"
+  }
+}

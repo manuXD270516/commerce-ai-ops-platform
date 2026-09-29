@@ -1,0 +1,43 @@
+{
+  "name": "commerce-ai-ops-platform",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.4.2",
+  "engines": {
+    "node": "^22.23.1",
+    "pnpm": "12.4.2"
+  },
+  "scripts": {
+    "build": "pnpm -r run build",
+    "build:packages": "pnpm -r --filter \"./packages/**\" run build",
+    "typecheck": "pnpm run build:packages && pnpm -r run typecheck",
+    "lint": "eslint . --max-warnings=0",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "pnpm -r run test",
+    "contracts:check": "pnpm --filter @commerce/contracts run check",
+    "evals": "pnpm --filter @commerce/evals run evals",
+    "openspec:validate": "pnpm dlx @fission-ai/openspec@1.11.0 validate --all --strict --no-interactive",
+    "verify": "pnpm run lint && pnpm run format:check && pnpm run build && pnpm run typecheck && pnpm run test && pnpm run contracts:check && pnpm run evals",
+    "infra:up": "docker compose -f infra/compose.yaml --env-file .env up -d --wait",
+    "infra:up:tracing": "docker compose -f infra/compose.yaml --env-file .env --profile tracing up -d --wait",
+    "infra:down": "docker compose -f infra/compose.yaml --env-file .env --profile tracing down",
+    "start:api": "pnpm --filter @commerce/api run start",
+    "start:web": "pnpm --filter @commerce/web run start",
+    "start:worker": "pnpm --filter @commerce/worker run start",
+    "start:mcp": "pnpm --filter @commerce/commerce-mcp-server run start",
+    "smoke": "node infra/scripts/smoke.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@next/eslint-plugin-next": "16.3.6",
+    "@types/node": "22.20.4",
+    "eslint": "10.11.0",
+    "eslint-config-prettier": "10.1.8",
+    "globals": "17.12.0",
+    "prettier": "3.9.9",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.70.1"
+  }
+}

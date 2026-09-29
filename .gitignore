@@ -6,13 +6,14 @@ node_modules/
 dist/
 build/
 .next/
+next-env.d.ts
 out/
 .turbo/
 coverage/
 *.tsbuildinfo
 .eslintcache
 
-# Reportes generados por evals y smoke (los versionados viven en evals/reports/baseline)
+# Reportes generados por evals y smoke (CI los publica como artifacts)
 evals/reports/*
 !evals/reports/.gitkeep
 .smoke/

@@ -1,0 +1,35 @@
+{
+  "name": "@commerce/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./schemas/*": "./schemas/*",
+    "./openapi/*": "./openapi/*"
+  },
+  "files": [
+    "dist",
+    "schemas",
+    "openapi"
+  ],
+  "scripts": {
+    "generate": "node scripts/generate-types.mjs",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "check": "node scripts/generate-types.mjs --check && redocly lint openapi/v1.yaml --config redocly.yaml"
+  },
+  "dependencies": {
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1"
+  },
+  "devDependencies": {
+    "@redocly/cli": "2.54.3",
+    "json-schema-to-typescript": "16.0.0",
+    "vitest": "5.0.2"
+  }
+}

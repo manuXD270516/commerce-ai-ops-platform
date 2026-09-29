@@ -1,0 +1,20 @@
+{
+  "name": "@commerce/commerce-mcp-server",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "start": "node --env-file-if-exists=../../.env --import ./dist/instrumentation.js dist/main.js"
+  },
+  "dependencies": {
+    "@commerce/contracts": "workspace:*",
+    "@commerce/telemetry": "workspace:*",
+    "pino": "10.3.1"
+  },
+  "devDependencies": {
+    "vitest": "5.0.2"
+  }
+}

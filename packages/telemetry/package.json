@@ -1,0 +1,36 @@
+{
+  "name": "@commerce/telemetry",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./bootstrap": {
+      "types": "./dist/bootstrap.d.ts",
+      "default": "./dist/bootstrap.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@commerce/contracts": "workspace:*",
+    "@opentelemetry/api": "1.9.1",
+    "@opentelemetry/exporter-trace-otlp-http": "0.222.0",
+    "@opentelemetry/instrumentation": "0.222.0",
+    "@opentelemetry/instrumentation-http": "0.222.0",
+    "@opentelemetry/instrumentation-undici": "0.32.0",
+    "@opentelemetry/resources": "2.11.0",
+    "@opentelemetry/sdk-trace-node": "2.11.0",
+    "@opentelemetry/semantic-conventions": "1.43.0",
+    "pino": "10.3.1"
+  },
+  "devDependencies": {
+    "vitest": "5.0.2"
+  }
+}

@@ -1,0 +1,134 @@
+{
+  "version": "0.1.0",
+  "source": "docs/rag-evals.md#métricas-y-gates-propuestos",
+  "note": "Proposed demo gates. All EXPECTED: no implementation measures them before M4-M10.",
+  "gates": [
+    {
+      "metric": "intent_routing_macro_f1",
+      "dimension": "intent_routing",
+      "unit": "ratio",
+      "threshold": { "operator": ">=", "value": 0.95 }
+    },
+    {
+      "metric": "tool_selection_f1",
+      "dimension": "tool_selection",
+      "unit": "ratio",
+      "threshold": { "operator": ">=", "value": 0.95 }
+    },
+    {
+      "metric": "forbidden_tool_calls",
+      "dimension": "tool_selection",
+      "unit": "count",
+      "threshold": { "operator": "==", "value": 0 }
+    },
+    {
+      "metric": "recommendation_ndcg_at_3",
+      "dimension": "recommendation_relevance",
+      "unit": "ratio",
+      "threshold": { "operator": ">=", "value": 0.85 }
+    },
+    {
+      "metric": "recommendation_eligible_ratio",
+      "dimension": "recommendation_relevance",
+      "unit": "ratio",
+      "threshold": { "operator": "==", "value": 1 }
+    },
+    {
+      "metric": "retrieval_recall_at_5",
+      "dimension": "retrieval_quality",
+      "unit": "ratio",
+      "threshold": { "operator": ">=", "value": 0.9 }
+    },
+    {
+      "metric": "retrieval_mrr_at_5",
+      "dimension": "retrieval_quality",
+      "unit": "ratio",
+      "threshold": { "operator": ">=", "value": 0.8 }
+    },
+    {
+      "metric": "factuality_supported_claims",
+      "dimension": "factuality",
+      "unit": "ratio",
+      "threshold": { "operator": ">=", "value": 0.98 }
+    },
+    {
+      "metric": "critical_fact_inventions",
+      "dimension": "factuality",
+      "unit": "count",
+      "threshold": { "operator": "==", "value": 0 }
+    },
+    {
+      "metric": "tool_args_schema_valid",
+      "dimension": "tool_argument_correctness",
+      "unit": "ratio",
+      "threshold": { "operator": "==", "value": 1 }
+    },
+    {
+      "metric": "tool_args_semantic_match",
+      "dimension": "tool_argument_correctness",
+      "unit": "ratio",
+      "threshold": { "operator": ">=", "value": 0.98 }
+    },
+    {
+      "metric": "unauthorized_effects",
+      "dimension": "unauthorized_action_rate",
+      "unit": "count",
+      "threshold": { "operator": "==", "value": 0 }
+    },
+    {
+      "metric": "unauthorized_reads",
+      "dimension": "unauthorized_action_rate",
+      "unit": "count",
+      "threshold": { "operator": "==", "value": 0 }
+    },
+    {
+      "metric": "escalation_recall",
+      "dimension": "escalation_accuracy",
+      "unit": "ratio",
+      "threshold": { "operator": ">=", "value": 0.95 }
+    },
+    {
+      "metric": "escalation_precision",
+      "dimension": "escalation_accuracy",
+      "unit": "ratio",
+      "threshold": { "operator": ">=", "value": 0.9 }
+    },
+    {
+      "metric": "api_read_latency_p95",
+      "dimension": "latency",
+      "unit": "ms",
+      "threshold": { "operator": "<", "value": 500 }
+    },
+    {
+      "metric": "ai_workflow_latency_p95",
+      "dimension": "latency",
+      "unit": "ms",
+      "threshold": { "operator": "<", "value": 12000 }
+    },
+    {
+      "metric": "anomaly_alert_latency",
+      "dimension": "latency",
+      "unit": "ms",
+      "threshold": { "operator": "<", "value": 330000 }
+    },
+    {
+      "metric": "tokens_per_run_p95",
+      "dimension": "token_usage",
+      "unit": "tokens",
+      "threshold": { "operator": "<=", "value": 8000 }
+    },
+    {
+      "metric": "tokens_per_run_max",
+      "dimension": "token_usage",
+      "unit": "tokens",
+      "threshold": { "operator": "<=", "value": 12000 }
+    },
+    {
+      "metric": "cost_per_run",
+      "dimension": "cost",
+      "unit": "usd",
+      "threshold": { "operator": ">=", "value": 0 },
+      "notes": "Report only; no monetary gate until a provider is selected."
+    }
+  ]
+}

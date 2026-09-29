@@ -1,0 +1,14 @@
+packages:
+  - apps/*
+  - packages/*
+  - evals
+
+saveExact: true
+engineStrict: true
+# Supply-chain guard: never resolve a version published less than 24 h ago.
+minimumReleaseAge: 1440
+
+# Install scripts are denied unless listed here. msgpackr-extract is an optional native speedup
+# for BullMQ; msgpackr falls back to pure JS.
+allowBuilds:
+  msgpackr-extract: false

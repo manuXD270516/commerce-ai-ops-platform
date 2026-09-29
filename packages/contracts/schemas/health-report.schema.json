@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://commerce-ai-ops.local/schemas/health-report.schema.json",
+  "title": "HealthReport",
+  "description": "Liveness/readiness report of a process. Carries no business data.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["status", "service", "version", "observed_at", "checks"],
+  "properties": {
+    "status": { "type": "string", "enum": ["ok", "unavailable"] },
+    "service": { "$ref": "#/$defs/ServiceName" },
+    "version": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "observed_at": { "type": "string", "format": "date-time" },
+    "checks": {
+      "type": "array",
+      "maxItems": 16,
+      "items": { "$ref": "#/$defs/DependencyCheck" }
+    }
+  },
+  "$defs": {
+    "ServiceName": {
+      "type": "string",
+      "enum": ["web", "api", "worker", "commerce-mcp-server"]
+    },
+    "DependencyCheck": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "status", "latency_ms"],
+      "properties": {
+        "name": { "type": "string", "enum": ["postgres", "pgvector", "redis"] },
+        "status": { "type": "string", "enum": ["up", "down"] },
+        "latency_ms": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

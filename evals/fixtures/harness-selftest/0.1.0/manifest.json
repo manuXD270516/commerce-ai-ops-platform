@@ -1,0 +1,13 @@
+{
+  "id": "harness-selftest",
+  "version": "0.1.0",
+  "kind": "synthetic",
+  "created": "2026-09-29",
+  "description": "Harness self-test only. Checks correlation-id contract conformance against real code and the reporting path of a simulated target. Contains no domain, customer or tenant data; domain fixtures start in M1.",
+  "files": [
+    {
+      "path": "cases.jsonl",
+      "sha256": "a104ef64c2f5aecf01d39b2f07a6550b7b1a11a4cfb15fef38bdd4492928af44"
+    }
+  ]
+}
