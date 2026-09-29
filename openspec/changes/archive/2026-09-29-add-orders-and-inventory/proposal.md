@@ -14,12 +14,11 @@ Fuera de alcance: Transportistas reales, notificaciones externas, explicación d
 
 ### New Capabilities
 
-- `commerce-domain`: 2 requisito(s) de este milestone.
 - `agent-workflows`: 1 requisito(s) de este milestone.
 
 ### Modified Capabilities
 
-Ninguna.
+- `commerce-domain`: agrega 2 requisito(s) a la spec creada en M1.
 
 ## Impact
 

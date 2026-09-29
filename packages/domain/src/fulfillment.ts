@@ -1,12 +1,23 @@
 import { randomUUID } from 'node:crypto';
 import type { Kysely } from 'kysely';
 import type { ActorContext } from './access.js';
+import { assertRole } from './actors.js';
 import { STALE_TRACKING_MS } from './constants.js';
 import type { Database } from './db.js';
 import { DomainError } from './errors.js';
 import { claimInbox } from './inventory.js';
 import { appendAudit, withUnitOfWork } from './uow.js';
 import { getOrder, type OrderRecord } from './orders.js';
+
+export const TRACKING_STATUSES = [
+  'LABELLED',
+  'IN_TRANSIT',
+  'OUT_FOR_DELIVERY',
+  'DELIVERED',
+  'LOST',
+  'DELIVERED_DISPUTED',
+  'DELAYED',
+] as const;
 
 export interface ShipmentView {
   readonly id: string;
@@ -31,6 +42,7 @@ export async function getShippingStatus(
   db: Kysely<Database>,
   ctx: ActorContext,
   orderId: string,
+  now = new Date(),
 ): Promise<ShippingStatus> {
   const order = await getOrder(db, ctx, orderId);
   return withUnitOfWork(db, ctx, async (trx) => {
@@ -52,7 +64,7 @@ export async function getShippingStatus(
         .where('fulfillment_id', '=', fulfillment.id)
         .execute();
       for (const row of rows) {
-        const age = Date.now() - row.last_observed_at.getTime();
+        const age = now.getTime() - row.last_observed_at.getTime();
         shipments.push({
           id: row.id,
           fulfillmentId: fulfillment.id,
@@ -79,7 +91,7 @@ export async function getShippingStatus(
       orderId,
       orderStatus: order.status,
       shipments,
-      observedAt: new Date().toISOString(),
+      observedAt: now.toISOString(),
     };
   });
 }
@@ -94,16 +106,29 @@ export async function applyTrackingEvent(
     status: string;
     occurredAt: Date;
   },
-): Promise<{ applied: boolean }> {
+): Promise<{ applied: boolean; statusChanged?: boolean }> {
+  assertRole(ctx, ['support', 'inventory', 'admin']);
+  if (!(TRACKING_STATUSES as readonly string[]).includes(input.status)) {
+    throw new DomainError('VALIDATION_ERROR', 'Unknown tracking status');
+  }
   return withUnitOfWork(db, ctx, async (trx) => {
-    const claimed = await claimInbox(trx, ctx, 'shipping.tracking', input.providerEventId);
-    if (!claimed) return { applied: false };
     const shipment = await trx
       .selectFrom('shipments')
       .selectAll()
       .where('id', '=', input.shipmentId)
+      .forUpdate()
       .executeTakeFirst();
     if (!shipment) throw new DomainError('NOT_FOUND', 'Shipment not found');
+    if (shipment.carrier !== input.carrier) {
+      throw new DomainError('VALIDATION_ERROR', 'Event carrier does not match the shipment');
+    }
+    const claimed = await claimInbox(
+      trx,
+      ctx,
+      'shipping.tracking',
+      `${input.carrier}:${input.providerEventId}`,
+    );
+    if (!claimed) return { applied: false };
     await trx
       .insertInto('tracking_events')
       .values({
@@ -116,18 +141,21 @@ export async function applyTrackingEvent(
         occurred_at: input.occurredAt,
       })
       .execute();
-    const latest = await trx
-      .selectFrom('tracking_events')
-      .selectAll()
-      .where('shipment_id', '=', input.shipmentId)
-      .orderBy('occurred_at', 'desc')
-      .executeTakeFirstOrThrow();
-    await trx
-      .updateTable('shipments')
-      .set({ status: latest.status, last_observed_at: latest.occurred_at })
-      .where('id', '=', input.shipmentId)
-      .execute();
-    return { applied: true };
+    const newer = input.occurredAt.getTime() > shipment.last_observed_at.getTime();
+    if (newer) {
+      await trx
+        .updateTable('shipments')
+        .set({ status: input.status, last_observed_at: input.occurredAt })
+        .where('id', '=', input.shipmentId)
+        .execute();
+    }
+    await appendAudit(trx, ctx, {
+      action: 'shipping.tracking_event',
+      resourceType: 'shipment',
+      resourceId: input.shipmentId,
+      outcome: 'ALLOWED',
+    });
+    return { applied: true, statusChanged: newer };
   });
 }
 

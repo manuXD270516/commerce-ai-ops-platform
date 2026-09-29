@@ -182,6 +182,9 @@ try {
     { removeOnComplete: true, removeOnFail: true },
   );
   await queue.close();
+  const anomalyQueue = new Queue('inventory-anomalies', { connection });
+  await anomalyQueue.add('smoke-sweep', {}, { removeOnComplete: true, removeOnFail: true });
+  await anomalyQueue.close();
   await connection.quit();
 
   await sleep(tracing ? 2500 : 1000);
@@ -217,6 +220,14 @@ try {
     10_000,
   );
   check('worker logs the job correlation id after a Redis hop', jobLogged);
+  const sweepLogged = await waitUntil(
+    () =>
+      worker.some(
+        (l) => l.msg === 'anomaly sweep processed' && l.tenants > 0 && l.failed_tenants === 0,
+      ),
+    10_000,
+  );
+  check('worker runs the anomaly sweep for every tenant', sweepLogged);
 
   let traceOk;
   if (tracing) {

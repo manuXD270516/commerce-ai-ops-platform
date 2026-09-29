@@ -11,12 +11,16 @@
   },
   "dependencies": {
     "@commerce/contracts": "workspace:*",
+    "@commerce/domain": "workspace:*",
     "@commerce/telemetry": "workspace:*",
     "bullmq": "6.3.9",
     "ioredis": "6.0.0",
+    "kysely": "0.29.6",
     "pino": "10.3.1"
   },
   "devDependencies": {
+    "@types/pg": "8.23.1",
+    "pg": "8.23.0",
     "vitest": "5.0.2"
   }
 }

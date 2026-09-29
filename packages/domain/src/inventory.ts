@@ -2,6 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import type { Kysely } from 'kysely';
 import { sql } from 'kysely';
 import type { ActorContext } from './access.js';
+import { assertRole } from './actors.js';
 import type { Database } from './db.js';
 import { DomainError } from './errors.js';
 import { commitIdempotent } from './idempotency.js';
@@ -26,7 +27,10 @@ export async function reserveLastUnits(
     idempotencyKey: string;
   },
 ): Promise<ReservationResult> {
-  if (input.quantity < 1) throw new DomainError('VALIDATION_ERROR', 'quantity must be >= 1');
+  assertRole(ctx, ['inventory', 'support', 'admin']);
+  if (!Number.isSafeInteger(input.quantity) || input.quantity < 1) {
+    throw new DomainError('VALIDATION_ERROR', 'quantity must be a positive integer');
+  }
   return commitIdempotent(
     db,
     ctx,
@@ -101,7 +105,7 @@ export async function reserveLastUnits(
         })
         .execute();
       await appendOutbox(trx, ctx, {
-        eventId: input.eventId,
+        eventId: toEventUuid(input.eventId),
         aggregateType: 'stock_balance',
         aggregateId: balance.id,
         aggregateVersion: balance.version + 1,
@@ -134,6 +138,10 @@ export async function applyStockMovement(
     eventId: string;
   },
 ): Promise<{ version: number }> {
+  assertRole(ctx, ['inventory', 'admin']);
+  if (!Number.isSafeInteger(input.deltaOnHand) || !Number.isSafeInteger(input.deltaReserved)) {
+    throw new DomainError('VALIDATION_ERROR', 'deltas must be integers');
+  }
   return withUnitOfWork(db, ctx, async (trx) => {
     const claimed = await claimInbox(trx, ctx, 'inventory.movement', input.eventId);
     if (!claimed) {
@@ -176,6 +184,24 @@ export async function applyStockMovement(
         reference_id: input.eventId,
       })
       .execute();
+    await appendOutbox(trx, ctx, {
+      eventId: toEventUuid(input.eventId),
+      aggregateType: 'stock_balance',
+      aggregateId: balance.id,
+      aggregateVersion: balance.version + 1,
+      payload: {
+        type: 'InventoryChanged',
+        skuId: input.skuId,
+        deltaOnHand: input.deltaOnHand,
+        deltaReserved: input.deltaReserved,
+      },
+    });
+    await appendAudit(trx, ctx, {
+      action: 'inventory.movement',
+      resourceType: 'stock_balance',
+      resourceId: balance.id,
+      outcome: 'ALLOWED',
+    });
     return { version: balance.version + 1 };
   });
 }

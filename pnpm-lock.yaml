@@ -304,6 +304,9 @@ importers:
       '@commerce/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@commerce/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
       '@commerce/telemetry':
         specifier: workspace:*
         version: link:../../packages/telemetry
@@ -313,10 +316,19 @@ importers:
       ioredis:
         specifier: 6.0.0
         version: 6.0.0
+      kysely:
+        specifier: 0.29.6
+        version: 0.29.6
       pino:
         specifier: 10.3.1
         version: 10.3.1
     devDependencies:
+      '@types/pg':
+        specifier: 8.23.1
+        version: 8.23.1
+      pg:
+        specifier: 8.23.0
+        version: 8.23.0
       vitest:
         specifier: 5.0.2
         version: 5.0.2(@opentelemetry/api@1.9.1)(@types/node@22.20.4)(vite@8.3.1(@types/node@22.20.4))

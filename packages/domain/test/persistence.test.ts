@@ -48,6 +48,7 @@ describe.skipIf(!enabled)('commerce domain against PostgreSQL', () => {
       '0001_schema.sql',
       '0002_rls.sql',
       '0003_embeddings.sql',
+      '0004_anomaly_dedup.sql',
     ]);
   });
 

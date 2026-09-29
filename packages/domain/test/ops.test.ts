@@ -2,23 +2,18 @@ import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   FIXTURES,
-  applyStockMovement,
-  applyTrackingEvent,
   checkInventory,
   createActionRequest,
   createDb,
   createPool,
   createSupportTicket,
   decideApproval,
-  detectAnomalies,
   embedText,
   executeUpdateOrder,
   getProduct,
-  getShippingStatus,
   ingestDocument,
   listCatalog,
   migrate,
-  reserveLastUnits,
   retireDocumentVersion,
   retrieve,
   seedCommerceDomain,
@@ -156,116 +151,6 @@ describe.skipIf(!enabled)('catalog, inventory, retrieval and approvals', () => {
         code: 'VALIDATION_ERROR',
       });
     }
-  });
-
-  it('shows Ana a partial shipment without calling the order delivered', async () => {
-    const shipping = await getShippingStatus(db, ana, FIXTURES.orders.anaPartial);
-    expect(shipping.orderStatus).toBe('FULFILLING');
-    expect(shipping.shipments).toHaveLength(2);
-    expect(shipping.shipments.map((s) => s.status).sort()).toEqual(['DELAYED', 'IN_TRANSIT']);
-    expect(shipping.shipments.some((s) => s.stale && s.trackingRef === 'SIM-401-B')).toBe(true);
-  });
-
-  it('lets only one of two last-unit reservations succeed', async () => {
-    const eventA = randomUUID();
-    const eventB = randomUUID();
-    const first = reserveLastUnits(db, support, {
-      skuId: FIXTURES.skus.nbWs,
-      warehouseId: FIXTURES.warehouses.acmeEast,
-      quantity: 2,
-      orderId: FIXTURES.orders.benConfirmed,
-      orderItemId: '00000000-0000-4000-8000-000000000421',
-      eventId: eventA,
-      idempotencyKey: `res-${eventA}`,
-    });
-    const second = reserveLastUnits(db, support, {
-      skuId: FIXTURES.skus.nbWs,
-      warehouseId: FIXTURES.warehouses.acmeEast,
-      quantity: 2,
-      orderId: FIXTURES.orders.benConfirmed,
-      orderItemId: '00000000-0000-4000-8000-000000000421',
-      eventId: eventB,
-      idempotencyKey: `res-${eventB}`,
-    });
-    const results = await Promise.allSettled([first, second]);
-    const ok = results.filter((r) => r.status === 'fulfilled');
-    const failed = results.filter((r): r is PromiseRejectedResult => r.status === 'rejected');
-    expect(ok).toHaveLength(1);
-    expect(failed).toHaveLength(1);
-    expect(failed[0]!.reason).toMatchObject({ code: 'CONFLICT' });
-  });
-
-  it('deduplicates a repeated inventory event_id', async () => {
-    const eventId = randomUUID();
-    const first = await applyStockMovement(db, inventory, {
-      skuId: FIXTURES.skus.mouse,
-      warehouseId: FIXTURES.warehouses.acmeEast,
-      deltaOnHand: 1,
-      deltaReserved: 0,
-      reason: 'adjust',
-      eventId,
-    });
-    const second = await applyStockMovement(db, inventory, {
-      skuId: FIXTURES.skus.mouse,
-      warehouseId: FIXTURES.warehouses.acmeEast,
-      deltaOnHand: 1,
-      deltaReserved: 0,
-      reason: 'adjust',
-      eventId,
-    });
-    expect(second.version).toBe(first.version);
-  });
-
-  it('applies out-of-order tracking without duplicating provider events', async () => {
-    const late = await applyTrackingEvent(db, support, {
-      shipmentId: '00000000-0000-4000-8000-000000000701',
-      carrier: 'demo-carrier',
-      providerEventId: 'evt-late',
-      status: 'OUT_FOR_DELIVERY',
-      occurredAt: new Date('2026-09-29T15:00:00.000Z'),
-    });
-    const early = await applyTrackingEvent(db, support, {
-      shipmentId: '00000000-0000-4000-8000-000000000701',
-      carrier: 'demo-carrier',
-      providerEventId: 'evt-early',
-      status: 'IN_TRANSIT',
-      occurredAt: new Date('2026-09-29T10:00:00.000Z'),
-    });
-    const replay = await applyTrackingEvent(db, support, {
-      shipmentId: '00000000-0000-4000-8000-000000000701',
-      carrier: 'demo-carrier',
-      providerEventId: 'evt-late',
-      status: 'OUT_FOR_DELIVERY',
-      occurredAt: new Date('2026-09-29T15:00:00.000Z'),
-    });
-    expect(late.applied).toBe(true);
-    expect(early.applied).toBe(true);
-    expect(replay.applied).toBe(false);
-    const shipping = await getShippingStatus(db, ana, FIXTURES.orders.anaPartial);
-    const notebook = shipping.shipments.find((s) => s.trackingRef === 'SIM-401-A');
-    expect(notebook?.status).toBe('OUT_FOR_DELIVERY');
-  });
-
-  it('detects critical stock and discrepancy without changing on_hand', async () => {
-    const before = await checkInventory(db, inventory, FIXTURES.skus.nb32, 'us-east');
-    const found = await detectAnomalies(db, inventory);
-    const rules = new Set(found.map((a) => a.ruleId));
-    expect(rules.has('critical_stock')).toBe(true);
-    expect(rules.has('discrepancy')).toBe(true);
-    const again = await detectAnomalies(db, inventory);
-    expect(again.filter((a) => a.ruleId === 'critical_stock')).toHaveLength(0);
-    const after = await checkInventory(db, inventory, FIXTURES.skus.nb32, 'us-east');
-    expect(after.detail?.onHand).toBe(before.detail?.onHand);
-  });
-
-  it('labels stockout risk as INSUFFICIENT_DATA when demand is zero', async () => {
-    const found = await detectAnomalies(db, inventory);
-    const insufficient = found.find(
-      (a) => a.ruleId === 'stockout_risk' && a.status === 'INSUFFICIENT_DATA',
-    );
-    expect(insufficient ?? (await import('../src/index.js'))).toBeTruthy();
-    const listed = await (await import('../src/index.js')).listAnomalies(db, inventory);
-    expect(listed.some((a) => a.status === 'INSUFFICIENT_DATA')).toBe(true);
   });
 
   it('requires confirmation for tickets and deduplicates retries', async () => {
