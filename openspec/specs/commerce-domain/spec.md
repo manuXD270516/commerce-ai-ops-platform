@@ -15,3 +15,10 @@ El sistema SHALL obtener tenant y sujeto de identidad verificada, aplicar autori
 #### Scenario: Cross-tenant identifier
 - **WHEN** se usa un ID de otro tenant en lectura, escritura o relación de entidades
 - **THEN** no se devuelve información ni se confirma ningún cambio
+
+### Requirement: Structured catalog and money
+El sistema SHALL representar SKUs con atributos tipados, importes enteros y moneda; aplicar filtros explícitos antes de recomendar.
+
+#### Scenario: Strict budget
+- **WHEN** se consulta una notebook por menos de USD 1.500
+- **THEN** sólo son elegibles SKUs publicados con currency USD y price_minor <150000

@@ -1,9 +1,20 @@
 import type { AddressInfo } from 'node:net';
+import { AUDIENCES, generateLocalIssuerKeys, signAccessToken } from '@commerce/contracts';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createMcpServer, MCP_PROTOCOL } from '../src/server.js';
 
-const server = createMcpServer('0.0.0');
+const ISSUER = 'http://127.0.0.1:3000/local-issuer';
+const TENANT = '00000000-0000-4000-8000-000000000001';
+const keys = generateLocalIssuerKeys();
+const server = createMcpServer('0.0.0', undefined, { issuer: ISSUER, jwks: keys.jwks });
 let baseUrl: string;
+
+function token(audience: (typeof AUDIENCES)['api' | 'mcp'] = AUDIENCES.mcp): string {
+  return signAccessToken(
+    { subject: 'acme-support', tenantId: TENANT, audience },
+    { issuer: ISSUER, privateJwk: keys.privateJwk },
+  );
+}
 
 beforeAll(async () => {
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
@@ -17,11 +28,14 @@ afterAll(() => {
 async function mcp(
   method: string,
   params: Record<string, unknown> = {},
-  headers: Record<string, string> = {},
+  bearer?: string,
 ): Promise<Response> {
   return fetch(`${baseUrl}/mcp`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', ...headers },
+    headers: {
+      'content-type': 'application/json',
+      ...(bearer ? { authorization: `Bearer ${bearer}` } : {}),
+    },
     body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
   });
 }
@@ -32,17 +46,13 @@ describe('commerce-mcp-server', () => {
     expect((await fetch(`${baseUrl}/readyz`)).status).toBe(503);
   });
 
-  it('rejects unauthenticated MCP calls', async () => {
-    const res = await mcp('tools/list');
-    expect(res.status).toBe(401);
+  it('rejects unauthenticated calls and tokens issued for the API audience', async () => {
+    expect((await mcp('tools/list')).status).toBe(401);
+    expect((await mcp('tools/list', {}, token(AUDIENCES.api))).status).toBe(401);
   });
 
   it('lists eight classified tools over authenticated transport', async () => {
-    const res = await mcp(
-      'tools/list',
-      {},
-      { 'x-tenant-id': '00000000-0000-4000-8000-000000000001', 'x-subject-id': 'acme-support' },
-    );
+    const res = await mcp('tools/list', {}, token());
     expect(res.status).toBe(200);
     expect(res.headers.get('mcp-protocol-version')).toBe(MCP_PROTOCOL);
     const body = (await res.json()) as { result: { tools: { name: string }[] } };
@@ -62,7 +72,7 @@ describe('commerce-mcp-server', () => {
     const res = await mcp(
       'tools/call',
       { name: 'search_products', arguments: { limit: 99, tenant: 'evil' } },
-      { 'x-tenant-id': '00000000-0000-4000-8000-000000000001', 'x-subject-id': 'acme-support' },
+      token(),
     );
     const body = (await res.json()) as { error?: { message: string } };
     expect(body.error?.message).toBe('VALIDATION_ERROR');

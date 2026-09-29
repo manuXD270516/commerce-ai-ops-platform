@@ -13,11 +13,18 @@ import {
   isDomainError,
   listCatalog,
   resolveActor,
-  resolveTenantId,
   type ActorContext,
   type DomainDb,
 } from '@commerce/domain';
-import type { HealthReport } from '@commerce/contracts';
+import {
+  AccessTokenError,
+  AUDIENCES,
+  bearerToken,
+  verifyAccessToken,
+  type HealthReport,
+  type Jwks,
+  type VerifiedIdentity,
+} from '@commerce/contracts';
 
 const TOOLS = [
   { name: 'search_products', classification: 'READ' },
@@ -32,7 +39,16 @@ const TOOLS = [
 
 export const MCP_PROTOCOL = '2025-06-18';
 
-export function createMcpServer(version: string, databaseUrl?: string): Server {
+export interface McpAuthConfig {
+  readonly issuer: string;
+  readonly jwks: Jwks;
+}
+
+export function createMcpServer(
+  version: string,
+  databaseUrl?: string,
+  auth?: McpAuthConfig,
+): Server {
   const pool = databaseUrl ? createPool(databaseUrl) : undefined;
   const db = pool ? createDb(pool) : undefined;
   const server = createServer((req, res) => {
@@ -42,7 +58,7 @@ export function createMcpServer(version: string, databaseUrl?: string): Server {
       return;
     }
     if (path === '/mcp') {
-      void handleMcp(req, res, db);
+      void handleMcp(req, res, db, auth);
       return;
     }
     res.writeHead(404, { 'content-type': 'application/json' }).end('{"status":"not_found"}');
@@ -69,14 +85,14 @@ async function handleMcp(
   req: IncomingMessage,
   res: ServerResponse,
   db: DomainDb | undefined,
+  auth: McpAuthConfig | undefined,
 ): Promise<void> {
   if (req.method !== 'POST') {
     res.writeHead(405).end();
     return;
   }
-  const tenant = header(req, 'x-tenant-id');
-  const subject = header(req, 'x-subject-id');
-  if (!tenant || !subject) {
+  const identity = authenticate(req, auth);
+  if (!identity) {
     res.writeHead(401, { 'content-type': 'application/json' }).end(
       JSON.stringify({
         jsonrpc: '2.0',
@@ -95,7 +111,7 @@ async function handleMcp(
     return;
   }
   try {
-    const result = await dispatch(db, tenant, subject, body.method ?? '', body.params ?? {});
+    const result = await dispatch(db, identity, body.method ?? '', body.params ?? {});
     res
       .writeHead(200, { 'content-type': 'application/json', 'mcp-protocol-version': MCP_PROTOCOL })
       .end(JSON.stringify({ jsonrpc: '2.0', id: body.id ?? 1, result }));
@@ -115,8 +131,7 @@ async function handleMcp(
 
 async function dispatch(
   db: DomainDb | undefined,
-  tenant: string,
-  subject: string,
+  identity: VerifiedIdentity,
   method: string,
   params: Record<string, unknown>,
 ): Promise<unknown> {
@@ -147,8 +162,10 @@ async function dispatch(
     throw new DomainError('VALIDATION_ERROR', 'limit > 50');
   }
   if (!db) throw new DomainError('DEPENDENCY_UNAVAILABLE', 'DATABASE_URL is not configured');
-  const tenantId = await resolveTenantId(db, tenant);
-  const ctx = await resolveActor(db, { tenantId, subjectId: subject });
+  const ctx = await resolveActor(db, {
+    tenantId: identity.tenantId,
+    subjectId: identity.subject,
+  });
   return { content: [{ type: 'text', text: JSON.stringify(await callTool(db, ctx, name, args)) }] };
 }
 
@@ -201,9 +218,19 @@ async function callTool(
   }
 }
 
-function header(req: IncomingMessage, name: string): string | undefined {
-  const value = req.headers[name];
-  return typeof value === 'string' ? value : undefined;
+/** Subject and tenant come only from a verified token issued for the MCP audience. */
+function authenticate(
+  req: IncomingMessage,
+  auth: McpAuthConfig | undefined,
+): VerifiedIdentity | undefined {
+  const token = bearerToken(req.headers.authorization);
+  if (!token || !auth) return undefined;
+  try {
+    return verifyAccessToken(token, { ...auth, audience: AUDIENCES.mcp });
+  } catch (error) {
+    if (error instanceof AccessTokenError) return undefined;
+    throw error;
+  }
 }
 
 function asString(value: unknown): string | undefined {

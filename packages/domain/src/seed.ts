@@ -6,7 +6,7 @@ import pg from 'pg';
 import { encryptEmail, hashEmail } from './pii.js';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '../../..');
-export const COMMERCE_FIXTURE_DIR = join(repoRoot, 'evals/fixtures/commerce-domain/0.1.0');
+export const COMMERCE_FIXTURE_DIR = join(repoRoot, 'evals/fixtures/commerce-domain/0.2.0');
 
 interface SeedFile {
   tenants: { id: string; slug: string; name: string }[];

@@ -1,12 +1,13 @@
 import type { Kysely } from 'kysely';
 import { sql } from 'kysely';
-import type { ActorContext } from './access.js';
+import type { ActorContext, Role } from './access.js';
 import { MAX_PAGE } from './constants.js';
 import type { Database } from './db.js';
 import { DomainError } from './errors.js';
 import { appendAudit, withUnitOfWork } from './uow.js';
 
 export interface CatalogFilters {
+  readonly productId?: string;
   readonly category?: string;
   readonly currency?: string;
   readonly priceLt?: number;
@@ -51,7 +52,23 @@ export async function listCatalog(
   if (filters.currency !== undefined && filters.currency !== 'USD') {
     throw new DomainError('VALIDATION_ERROR', 'Only USD is supported', { field: 'currency' });
   }
-  const limit = Math.min(Math.max(filters.limit ?? 20, 1), MAX_PAGE);
+  for (const [field, value] of [
+    ['price_lt', filters.priceLt],
+    ['ram_gb', filters.ramGb],
+    ['limit', filters.limit],
+  ] as const) {
+    if (value !== undefined && (!Number.isSafeInteger(value) || value < 0)) {
+      throw new DomainError('VALIDATION_ERROR', `${field} must be a non-negative integer`, {
+        field,
+      });
+    }
+  }
+  if (filters.limit !== undefined && (filters.limit < 1 || filters.limit > MAX_PAGE)) {
+    throw new DomainError('VALIDATION_ERROR', `limit must be between 1 and ${MAX_PAGE}`, {
+      field: 'limit',
+    });
+  }
+  const limit = filters.limit ?? 20;
   const cursor = filters.cursor ? decodeCursor(filters.cursor) : undefined;
   const observedAt = new Date().toISOString();
 
@@ -83,6 +100,7 @@ export async function listCatalog(
       .where('p.status', '=', 'published')
       .where('s.currency', '=', filters.currency ?? 'USD');
 
+    if (filters.productId) query = query.where('p.id', '=', filters.productId);
     if (filters.category) query = query.where('p.category', '=', filters.category);
     if (filters.priceLt !== undefined)
       query = query.where('s.price_minor', '<', String(filters.priceLt));
@@ -103,9 +121,10 @@ export async function listCatalog(
     const page = rows.slice(0, limit);
     const overflow = rows.length > limit ? rows[limit] : undefined;
     await appendAudit(trx, ctx, {
-      action: 'catalog.list',
+      action: filters.productId ? 'catalog.read' : 'catalog.list',
       resourceType: 'product',
-      outcome: 'ALLOWED',
+      resourceId: filters.productId,
+      outcome: filters.productId && page.length === 0 ? 'DENIED' : 'ALLOWED',
     });
     const items: CatalogSku[] = page.map((row) => ({
       id: row.id,
@@ -139,22 +158,26 @@ export async function getProduct(
   productId: string,
   region?: string,
 ): Promise<{ productId: string; title: string; category: string; skus: readonly CatalogSku[] }> {
-  const page = await listCatalog(db, ctx, { region, limit: MAX_PAGE });
-  const skus = page.items.filter((s) => s.productId === productId);
-  if (skus.length === 0) {
-    await withUnitOfWork(db, ctx, async (trx) => {
-      await appendAudit(trx, ctx, {
-        action: 'catalog.read',
-        resourceType: 'product',
-        resourceId: productId,
-        outcome: 'DENIED',
-      });
-    });
-    throw new DomainError('NOT_FOUND', 'Product not found');
-  }
-  const first = skus[0];
+  const page = await listCatalog(db, ctx, { productId, region, limit: MAX_PAGE });
+  const first = page.items[0];
   if (!first) throw new DomainError('NOT_FOUND', 'Product not found');
-  return { productId, title: first.title, category: first.category, skus };
+  return { productId, title: first.title, category: first.category, skus: page.items };
+}
+
+/** Roles that may see stock internals and unpublished SKUs; everyone else sees availability only. */
+const INVENTORY_DETAIL_ROLES: readonly Role[] = ['inventory', 'support', 'admin'];
+const UNPUBLISHED_ROLES: readonly Role[] = ['inventory', 'admin'];
+
+export interface InventoryView {
+  readonly skuId: string;
+  readonly available: number;
+  readonly region: string;
+  readonly observedAt: string;
+  readonly detail?: {
+    readonly onHand: number;
+    readonly reserved: number;
+    readonly safetyStock: number;
+  };
 }
 
 export async function checkInventory(
@@ -162,61 +185,60 @@ export async function checkInventory(
   ctx: ActorContext,
   skuId: string,
   region?: string,
-): Promise<{
-  skuId: string;
-  available: number;
-  onHand: number;
-  reserved: number;
-  safetyStock: number;
-  region: string;
-  observedAt: string;
-}> {
+): Promise<InventoryView> {
   const result = await withUnitOfWork(db, ctx, async (trx) => {
     let query = trx
       .selectFrom('stock_balances as b')
       .innerJoin('warehouses as w', (join) =>
         join.onRef('w.id', '=', 'b.warehouse_id').onRef('w.tenant_id', '=', 'b.tenant_id'),
       )
+      .innerJoin('skus as s', (join) =>
+        join.onRef('s.id', '=', 'b.sku_id').onRef('s.tenant_id', '=', 'b.tenant_id'),
+      )
+      .innerJoin('products as p', (join) =>
+        join.onRef('p.id', '=', 's.product_id').onRef('p.tenant_id', '=', 's.tenant_id'),
+      )
       .select([
-        'b.sku_id as skuId',
-        'b.on_hand as onHand',
-        'b.reserved as reserved',
-        'b.safety_stock as safetyStock',
         'w.region as region',
+        sql<number>`sum(b.on_hand)::int`.as('onHand'),
+        sql<number>`sum(b.reserved)::int`.as('reserved'),
+        sql<number>`sum(b.safety_stock)::int`.as('safetyStock'),
       ])
-      .where('b.sku_id', '=', skuId);
+      .where('b.sku_id', '=', skuId)
+      .groupBy('w.region');
     if (region) query = query.where('w.region', '=', region);
-    const row = await query.executeTakeFirst();
-    if (!row) {
-      await appendAudit(trx, ctx, {
-        action: 'inventory.read',
-        resourceType: 'sku',
-        resourceId: skuId,
-        outcome: 'DENIED',
+    if (!UNPUBLISHED_ROLES.includes(ctx.role)) query = query.where('p.status', '=', 'published');
+    const rows = await query.execute();
+    const row = rows[0];
+    if (rows.length > 1) {
+      throw new DomainError('VALIDATION_ERROR', 'region is required for multi-region SKUs', {
+        field: 'region',
       });
-      return { kind: 'denied' as const };
     }
     await appendAudit(trx, ctx, {
       action: 'inventory.read',
       resourceType: 'sku',
       resourceId: skuId,
-      outcome: 'ALLOWED',
+      outcome: row ? 'ALLOWED' : 'DENIED',
     });
-    return {
-      kind: 'found' as const,
-      value: {
-        skuId: row.skuId,
-        available: row.onHand - row.reserved,
-        onHand: row.onHand,
-        reserved: row.reserved,
-        safetyStock: row.safetyStock,
-        region: row.region,
-        observedAt: new Date().toISOString(),
-      },
-    };
+    return row;
   });
-  if (result.kind === 'denied') throw new DomainError('NOT_FOUND', 'Inventory not found');
-  return result.value;
+  if (!result) throw new DomainError('NOT_FOUND', 'Inventory not found');
+  const view: InventoryView = {
+    skuId,
+    available: result.onHand - result.reserved,
+    region: result.region,
+    observedAt: new Date().toISOString(),
+  };
+  if (!INVENTORY_DETAIL_ROLES.includes(ctx.role)) return view;
+  return {
+    ...view,
+    detail: {
+      onHand: result.onHand,
+      reserved: result.reserved,
+      safetyStock: result.safetyStock,
+    },
+  };
 }
 
 function encodeCursor(cursor: Cursor): string {

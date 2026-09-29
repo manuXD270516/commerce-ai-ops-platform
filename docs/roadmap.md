@@ -1,12 +1,12 @@
 # Roadmap del MVP
 
-M0 y M1 completados (2026-09-29); M2–M11 pendientes. La secuencia expresa dependencias, no estimaciones de calendario. Cada milestone tiene su propio change en `openspec/changes/` con los requisitos que implementa; se archiva sólo cuando sus tareas tienen evidencia. M0 usó `define-commerce-ops-mvp`, que nació como contrato M0–M11 y se dividió tras completarlo. Si cambia alcance o comportamiento, actualizar proposal/spec/design/tasks antes de implementar; una feature adicional lleva nuevo change.
+M0, M1 y M2 completados (2026-09-29); M3–M11 pendientes. La secuencia expresa dependencias, no estimaciones de calendario. Cada milestone tiene su propio change en `openspec/changes/` con los requisitos que implementa; se archiva sólo cuando sus tareas tienen evidencia. M0 usó `define-commerce-ops-mvp`, que nació como contrato M0–M11 y se dividió tras completarlo. Si cambia alcance o comportamiento, actualizar proposal/spec/design/tasks antes de implementar; una feature adicional lleva nuevo change.
 
 | Milestone (change) | Dependencias | Entregable previsto | Gate de salida / evidencia |
 |---|---|---|---|
 | M0 Bootstrap (`define-commerce-ops-mvp`, completado) | Diseño revisado | Monorepo TS, Next.js/NestJS/worker/MCP skeleton, entorno local, CI y harness inicial | Arranque reproducible; lint/typecheck/build; smoke con correlación; ningún secreto |
 | M1 Commerce domain model (`add-commerce-domain-model`, completado) | M0 | Schema/migraciones, fixtures de dos tenants, estados, RLS y outbox | Migración limpia; invariantes, FKs y aislamiento negativos; snapshots consistentes |
-| M2 Catalog API (`add-catalog-api`) | M1 | REST tipado, filtros, cursores, contratos y disponibilidad de lectura | OpenAPI/contract tests; presupuesto estricto, moneda y paginación determinista |
+| M2 Catalog API (`add-catalog-api`, completado) | M1 | REST tipado, filtros, cursores, contratos y disponibilidad de lectura | OpenAPI/contract tests; presupuesto estricto, moneda y paginación determinista |
 | M3 Orders and inventory (`add-orders-and-inventory`) | M1, M2 | Órdenes, fulfillment, shipping simulado, reserva/movimientos y detector de anomalías | Concurrencia/idempotencia; paquetes parciales; 4 reglas con fixtures y freshness |
 | M4 RAG (`add-hybrid-retrieval`) | M2, políticas/fixtures M1 | Ingesta versionada, publicación, ACL, SQL + full-text + pgvector, citas | Recall baseline; no fugas; versiones históricas; no candidatos; retiro/invalidation |
 | M5 MCP (`add-controlled-mcp`) | M3, M4 | Ocho tools y permisos/scopes, schemas, auditoría e idempotencia | Contratos cliente-servidor; WRITE sin consentimiento y PRIVILEGED sin aprobación denegados |

@@ -29,7 +29,7 @@ if (command === 'migrate') {
   const key = process.env.PII_ENCRYPTION_KEY;
   if (!key) throw new Error('PII_ENCRYPTION_KEY is required');
   await seedCommerceDomain(urls().migratorUrl, key);
-  console.log(JSON.stringify({ seeded: 'commerce-domain@0.1.0' }));
+  console.log(JSON.stringify({ seeded: 'commerce-domain@0.2.0' }));
 } else {
   throw new Error(`unknown command ${command}`);
 }

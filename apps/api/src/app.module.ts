@@ -7,6 +7,7 @@ import { DomainExceptionFilter } from './domain.filter.js';
 import { APP_FILTER } from '@nestjs/core';
 import { HealthController } from './health.controller.js';
 import { StatusController } from './status.controller.js';
+import { CatalogController } from './catalog.controller.js';
 import { CommerceController } from './commerce.controller.js';
 
 @Module({})
@@ -16,7 +17,7 @@ export class AppModule implements OnApplicationShutdown {
   static forRoot(config: ApiConfig): DynamicModule {
     return {
       module: AppModule,
-      controllers: [HealthController, StatusController, CommerceController],
+      controllers: [HealthController, StatusController, CatalogController, CommerceController],
       providers: [
         { provide: API_CONFIG, useValue: config },
         {
@@ -25,7 +26,7 @@ export class AppModule implements OnApplicationShutdown {
         },
         {
           provide: DOMAIN,
-          useFactory: () => new DomainService(config.databaseUrl),
+          useFactory: () => new DomainService(config.databaseUrl, config.auth),
         },
         { provide: APP_FILTER, useClass: DomainExceptionFilter },
       ],

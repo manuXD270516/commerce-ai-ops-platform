@@ -1,4 +1,5 @@
 export type ErrorCode =
+  | 'UNAUTHENTICATED'
   | 'NOT_FOUND'
   | 'FORBIDDEN'
   | 'CONFLICT'

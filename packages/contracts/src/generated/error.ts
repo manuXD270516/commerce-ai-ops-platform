@@ -2,6 +2,7 @@
 
 export interface ApiError {
   code:
+    | 'UNAUTHENTICATED'
     | 'VALIDATION_ERROR'
     | 'NOT_FOUND'
     | 'FORBIDDEN'

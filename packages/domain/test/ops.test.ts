@@ -103,6 +103,59 @@ describe.skipIf(!enabled)('catalog, inventory, retrieval and approvals', () => {
     const stock = await checkInventory(db, ana, FIXTURES.skus.nb16, 'us-east');
     expect(stock.available).toBe(11);
     expect(stock.region).toBe('us-east');
+    expect(stock.detail).toBeUndefined();
+  });
+
+  it('excludes a SKU priced exactly USD 1500 from a strict < 1500 budget', async () => {
+    const below = await listCatalog(db, ana, { category: 'notebook', priceLt: 150_000 });
+    expect(below.items.some((sku) => sku.id === FIXTURES.skus.nb32AtBudget)).toBe(false);
+    const above = await listCatalog(db, ana, { category: 'notebook', priceLt: 150_001 });
+    expect(above.items.some((sku) => sku.id === FIXTURES.skus.nb32AtBudget)).toBe(true);
+  });
+
+  it('hides draft products from customers and support but not from inventory', async () => {
+    for (const actor of [ana, support]) {
+      const page = await listCatalog(db, actor, { limit: 50 });
+      expect(page.items.some((sku) => sku.id === FIXTURES.skus.draftProto)).toBe(false);
+      await expect(getProduct(db, actor, FIXTURES.products.draftProto)).rejects.toMatchObject({
+        code: 'NOT_FOUND',
+      });
+      await expect(checkInventory(db, actor, FIXTURES.skus.draftProto)).rejects.toMatchObject({
+        code: 'NOT_FOUND',
+      });
+    }
+    const stock = await checkInventory(db, inventory, FIXTURES.skus.draftProto);
+    expect(stock.detail).toMatchObject({ onHand: 9, reserved: 0, safetyStock: 5 });
+  });
+
+  it('paginates deterministically by (price_minor, sku_code) without gaps or duplicates', async () => {
+    const full = await listCatalog(db, ana, { limit: 50 });
+    const walked: string[] = [];
+    let cursor: string | undefined;
+    for (let i = 0; i < 20; i++) {
+      const page = await listCatalog(db, ana, { limit: 2, cursor });
+      walked.push(...page.items.map((sku) => sku.id));
+      if (!page.nextCursor) break;
+      cursor = page.nextCursor;
+    }
+    expect(walked).toEqual(full.items.map((sku) => sku.id));
+    const prices = full.items.map((sku) => sku.priceMinor);
+    expect(prices).toEqual([...prices].sort((a, b) => a - b));
+  });
+
+  it('rejects invalid filters with VALIDATION_ERROR', async () => {
+    for (const filters of [
+      { currency: 'EUR' },
+      { limit: 51 },
+      { limit: 0 },
+      { priceLt: -1 },
+      { priceLt: 1.5 },
+      { cursor: 'not-a-cursor' },
+    ]) {
+      await expect(listCatalog(db, ana, filters)).rejects.toMatchObject({
+        code: 'VALIDATION_ERROR',
+      });
+    }
   });
 
   it('shows Ana a partial shipment without calling the order delivered', async () => {
@@ -202,7 +255,7 @@ describe.skipIf(!enabled)('catalog, inventory, retrieval and approvals', () => {
     const again = await detectAnomalies(db, inventory);
     expect(again.filter((a) => a.ruleId === 'critical_stock')).toHaveLength(0);
     const after = await checkInventory(db, inventory, FIXTURES.skus.nb32, 'us-east');
-    expect(after.onHand).toBe(before.onHand);
+    expect(after.detail?.onHand).toBe(before.detail?.onHand);
   });
 
   it('labels stockout risk as INSUFFICIENT_DATA when demand is zero', async () => {

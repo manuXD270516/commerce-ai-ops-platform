@@ -3,15 +3,17 @@ info:
   title: commerce-ai-ops-platform API
   version: 0.1.0
   description: >-
-    REST v1. Identity for the local demo is X-Tenant-Id + X-Subject-Id resolved against
-    memberships. OIDC is the cloud target in M11.
+    REST v1. Every domain endpoint requires a Bearer ES256 JWT for audience commerce-api.
+    Tenant and subject come from the verified token; the role comes from the membership row.
+    Locally a development issuer signs tokens (pnpm auth:init); cloud uses an OIDC provider (M11).
   license:
     name: UNLICENSED
     identifier: UNLICENSED
 servers:
   - url: http://localhost:3001
     description: Local development
-security: []
+security:
+  - bearerAuth: []
 tags:
   - name: operations
   - name: catalog
@@ -23,6 +25,7 @@ paths:
   /healthz:
     get:
       operationId: getLiveness
+      security: []
       tags: [operations]
       summary: Process liveness
       responses:
@@ -38,6 +41,7 @@ paths:
   /readyz:
     get:
       operationId: getReadiness
+      security: []
       tags: [operations]
       summary: Readiness including PostgreSQL, pgvector availability and Redis
       responses:
@@ -62,6 +66,7 @@ paths:
   /v1/status:
     get:
       operationId: getServiceStatus
+      security: []
       tags: [operations]
       summary: Diagnostic status echoing the correlation id
       parameters:
@@ -83,16 +88,24 @@ paths:
       tags: [catalog]
       parameters:
         - $ref: '#/components/parameters/CorrelationIdHeader'
-        - $ref: '#/components/parameters/TenantHeader'
-        - $ref: '#/components/parameters/SubjectHeader'
         - { name: category, in: query, schema: { type: string } }
         - { name: currency, in: query, schema: { type: string, enum: [USD] } }
-        - { name: price_lt, in: query, schema: { type: integer, minimum: 0 } }
-        - { name: ram_gb, in: query, schema: { type: integer, minimum: 1 } }
+        - {
+            name: price_lt,
+            in: query,
+            description: 'Strict upper bound in minor units (price_minor < price_lt)',
+            schema: { type: integer, minimum: 0 },
+          }
+        - { name: ram_gb, in: query, schema: { type: integer, minimum: 0 } }
+        - { name: cpu_family, in: query, schema: { type: string, maxLength: 128 } }
         - { name: region, in: query, schema: { type: string } }
         - { name: cursor, in: query, schema: { type: string } }
         - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 50 } }
       responses:
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
         '200':
           description: Page of published SKUs
           content:
@@ -108,10 +121,12 @@ paths:
       tags: [catalog]
       parameters:
         - $ref: '#/components/parameters/CorrelationIdHeader'
-        - $ref: '#/components/parameters/TenantHeader'
-        - $ref: '#/components/parameters/SubjectHeader'
         - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
       responses:
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
         '200':
           description: Product and published SKUs
           content:
@@ -127,11 +142,13 @@ paths:
       tags: [inventory]
       parameters:
         - $ref: '#/components/parameters/CorrelationIdHeader'
-        - $ref: '#/components/parameters/TenantHeader'
-        - $ref: '#/components/parameters/SubjectHeader'
         - { name: sku, in: path, required: true, schema: { type: string, format: uuid } }
         - { name: region, in: query, schema: { type: string } }
       responses:
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
         '200':
           description: Availability
           content:
@@ -147,8 +164,6 @@ paths:
       tags: [orders]
       parameters:
         - $ref: '#/components/parameters/CorrelationIdHeader'
-        - $ref: '#/components/parameters/TenantHeader'
-        - $ref: '#/components/parameters/SubjectHeader'
         - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
       responses:
         '200':
@@ -166,8 +181,6 @@ paths:
       tags: [orders]
       parameters:
         - $ref: '#/components/parameters/CorrelationIdHeader'
-        - $ref: '#/components/parameters/TenantHeader'
-        - $ref: '#/components/parameters/SubjectHeader'
         - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
       responses:
         '200':
@@ -185,8 +198,6 @@ paths:
       tags: [inventory]
       parameters:
         - $ref: '#/components/parameters/CorrelationIdHeader'
-        - $ref: '#/components/parameters/TenantHeader'
-        - $ref: '#/components/parameters/SubjectHeader'
       responses:
         '200':
           description: Deduplicated inventory alerts
@@ -197,8 +208,6 @@ paths:
       tags: [support]
       parameters:
         - $ref: '#/components/parameters/CorrelationIdHeader'
-        - $ref: '#/components/parameters/TenantHeader'
-        - $ref: '#/components/parameters/SubjectHeader'
         - {
             name: Idempotency-Key,
             in: header,
@@ -231,8 +240,6 @@ paths:
       tags: [orders]
       parameters:
         - $ref: '#/components/parameters/CorrelationIdHeader'
-        - $ref: '#/components/parameters/TenantHeader'
-        - $ref: '#/components/parameters/SubjectHeader'
         - { name: Idempotency-Key, in: header, required: true, schema: { type: string } }
       responses:
         '201':
@@ -244,8 +251,6 @@ paths:
       tags: [orders]
       parameters:
         - $ref: '#/components/parameters/CorrelationIdHeader'
-        - $ref: '#/components/parameters/TenantHeader'
-        - $ref: '#/components/parameters/SubjectHeader'
         - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
       responses:
         '200':
@@ -257,8 +262,6 @@ paths:
       tags: [orders]
       parameters:
         - $ref: '#/components/parameters/CorrelationIdHeader'
-        - $ref: '#/components/parameters/TenantHeader'
-        - $ref: '#/components/parameters/SubjectHeader'
         - { name: Idempotency-Key, in: header, required: true, schema: { type: string } }
         - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
       responses:
@@ -273,8 +276,6 @@ paths:
       tags: [agents]
       parameters:
         - $ref: '#/components/parameters/CorrelationIdHeader'
-        - $ref: '#/components/parameters/TenantHeader'
-        - $ref: '#/components/parameters/SubjectHeader'
       responses:
         '202':
           description: Run accepted
@@ -289,8 +290,6 @@ paths:
       tags: [agents]
       parameters:
         - $ref: '#/components/parameters/CorrelationIdHeader'
-        - $ref: '#/components/parameters/TenantHeader'
-        - $ref: '#/components/parameters/SubjectHeader'
         - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
       responses:
         '200':
@@ -306,8 +305,6 @@ paths:
       tags: [agents]
       parameters:
         - $ref: '#/components/parameters/CorrelationIdHeader'
-        - $ref: '#/components/parameters/TenantHeader'
-        - $ref: '#/components/parameters/SubjectHeader'
         - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
         - { name: Last-Event-ID, in: header, schema: { type: string } }
       responses:
@@ -322,26 +319,17 @@ components:
       schema:
         type: string
         pattern: '^[A-Za-z0-9._-]{8,64}$'
-    TenantHeader:
-      name: X-Tenant-Id
-      in: header
-      required: true
-      schema:
-        type: string
-    SubjectHeader:
-      name: X-Subject-Id
-      in: header
-      required: true
-      schema:
-        type: string
-        minLength: 1
-        maxLength: 128
   headers:
     CorrelationId:
       description: Correlation id used in structured logs and trace attributes.
       schema:
         type: string
         pattern: '^[A-Za-z0-9._-]{8,64}$'
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
   responses:
     Error:
       description: Stable domain error

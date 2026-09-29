@@ -81,6 +81,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm run build
       - run: cp .env.example .env
+      - run: pnpm run auth:init
       - run: pnpm run infra:up:tracing
       - run: pnpm run db:migrate
       - run: pnpm run db:seed

@@ -4,16 +4,8 @@
   "title": "Inventory",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "sku_id",
-    "available",
-    "on_hand",
-    "reserved",
-    "safety_stock",
-    "region",
-    "observed_at",
-    "source"
-  ],
+  "description": "on_hand, reserved and safety_stock are present only for inventory, support and admin roles.",
+  "required": ["sku_id", "available", "region", "observed_at", "source"],
   "properties": {
     "sku_id": { "type": "string", "format": "uuid" },
     "available": { "type": "integer" },

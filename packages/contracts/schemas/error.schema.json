@@ -9,6 +9,7 @@
     "code": {
       "type": "string",
       "enum": [
+        "UNAUTHENTICATED",
         "VALIDATION_ERROR",
         "NOT_FOUND",
         "FORBIDDEN",

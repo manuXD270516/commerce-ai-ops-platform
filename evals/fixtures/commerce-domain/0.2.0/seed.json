@@ -1,0 +1,103 @@
+{
+  "id": "commerce-domain",
+  "version": "0.2.0",
+  "kind": "synthetic",
+  "description": "Two tenants (acme, globex), USD, region us-east. Synthetic PII only. Used by M1+ isolation tests and later milestones. 0.2.0 adds a draft product and a SKU priced exactly USD 1500 (M2 boundary and hidden-data cases).",
+  "tenants": [
+    { "id": "00000000-0000-4000-8000-000000000001", "slug": "acme", "name": "Acme Commerce" },
+    { "id": "00000000-0000-4000-8000-000000000002", "slug": "globex", "name": "Globex Commerce" }
+  ],
+  "memberships": [
+    { "tenant": "acme", "id": "00000000-0000-4000-8000-000000000031", "subjectId": "acme-customer-ana", "role": "customer" },
+    { "tenant": "acme", "id": "00000000-0000-4000-8000-000000000032", "subjectId": "acme-customer-ben", "role": "customer" },
+    { "tenant": "acme", "id": "00000000-0000-4000-8000-000000000033", "subjectId": "acme-support", "role": "support" },
+    { "tenant": "acme", "id": "00000000-0000-4000-8000-000000000034", "subjectId": "acme-inventory", "role": "inventory" },
+    { "tenant": "acme", "id": "00000000-0000-4000-8000-000000000035", "subjectId": "acme-approver", "role": "approver" },
+    { "tenant": "acme", "id": "00000000-0000-4000-8000-000000000036", "subjectId": "acme-admin", "role": "admin" },
+    { "tenant": "globex", "id": "00000000-0000-4000-8000-000000000041", "subjectId": "globex-customer-cara", "role": "customer" },
+    { "tenant": "globex", "id": "00000000-0000-4000-8000-000000000042", "subjectId": "globex-support", "role": "support" }
+  ],
+  "customers": [
+    { "tenant": "acme", "id": "00000000-0000-4000-8000-000000000011", "subjectId": "acme-customer-ana", "name": "Ana Acme", "email": "ana@acme.test" },
+    { "tenant": "acme", "id": "00000000-0000-4000-8000-000000000012", "subjectId": "acme-customer-ben", "name": "Ben Acme", "email": "ben@acme.test" },
+    { "tenant": "globex", "id": "00000000-0000-4000-8000-000000000021", "subjectId": "globex-customer-cara", "name": "Cara Globex", "email": "cara@globex.test" }
+  ],
+  "products": [
+    { "tenant": "acme", "id": "00000000-0000-4000-8000-000000000101", "title": "Notebook de desarrollo", "category": "notebook", "description": "Portátil para desarrollo.", "status": "published" },
+    { "tenant": "acme", "id": "00000000-0000-4000-8000-000000000102", "title": "Mouse", "category": "accessory", "description": "Mouse óptico.", "status": "published" },
+    { "tenant": "acme", "id": "00000000-0000-4000-8000-000000000103", "title": "Notebook prototipo", "category": "notebook", "description": "Borrador no publicado.", "status": "draft" },
+    { "tenant": "globex", "id": "00000000-0000-4000-8000-000000000201", "title": "Globex Notebook", "category": "notebook", "description": "Otro tenant.", "status": "published" }
+  ],
+  "skus": [
+    { "tenant": "acme", "id": "00000000-0000-4000-8000-000000000111", "productId": "00000000-0000-4000-8000-000000000101", "skuCode": "NB-DEV-16", "priceMinor": 129900, "ramGb": 16, "cpuFamily": "zen4" },
+    { "tenant": "acme", "id": "00000000-0000-4000-8000-000000000112", "productId": "00000000-0000-4000-8000-000000000101", "skuCode": "NB-DEV-32", "priceMinor": 149900, "ramGb": 32, "cpuFamily": "zen4" },
+    { "tenant": "acme", "id": "00000000-0000-4000-8000-000000000113", "productId": "00000000-0000-4000-8000-000000000101", "skuCode": "NB-WS-64", "priceMinor": 189900, "ramGb": 64, "cpuFamily": "zen4" },
+    { "tenant": "acme", "id": "00000000-0000-4000-8000-000000000114", "productId": "00000000-0000-4000-8000-000000000102", "skuCode": "MOUSE-01", "priceMinor": 2900 },
+    { "tenant": "acme", "id": "00000000-0000-4000-8000-000000000115", "productId": "00000000-0000-4000-8000-000000000103", "skuCode": "NB-PROTO-16", "priceMinor": 99900, "ramGb": 16, "cpuFamily": "zen4" },
+    { "tenant": "acme", "id": "00000000-0000-4000-8000-000000000116", "productId": "00000000-0000-4000-8000-000000000101", "skuCode": "NB-DEV-32X", "priceMinor": 150000, "ramGb": 32, "cpuFamily": "zen4" },
+    { "tenant": "globex", "id": "00000000-0000-4000-8000-000000000211", "productId": "00000000-0000-4000-8000-000000000201", "skuCode": "GX-NB-16", "priceMinor": 99900, "ramGb": 16 }
+  ],
+  "warehouses": [
+    { "tenant": "acme", "id": "00000000-0000-4000-8000-000000000301", "name": "Acme East", "region": "us-east" },
+    { "tenant": "globex", "id": "00000000-0000-4000-8000-000000000302", "name": "Globex East", "region": "us-east" }
+  ],
+  "stock": [
+    { "tenant": "acme", "id": "00000000-0000-4000-8000-000000000311", "skuId": "00000000-0000-4000-8000-000000000111", "warehouseId": "00000000-0000-4000-8000-000000000301", "onHand": 12, "reserved": 1, "safetyStock": 5 },
+    { "tenant": "acme", "id": "00000000-0000-4000-8000-000000000312", "skuId": "00000000-0000-4000-8000-000000000112", "warehouseId": "00000000-0000-4000-8000-000000000301", "onHand": 4, "reserved": 0, "safetyStock": 5 },
+    { "tenant": "acme", "id": "00000000-0000-4000-8000-000000000313", "skuId": "00000000-0000-4000-8000-000000000113", "warehouseId": "00000000-0000-4000-8000-000000000301", "onHand": 2, "reserved": 0, "safetyStock": 5 },
+    { "tenant": "acme", "id": "00000000-0000-4000-8000-000000000314", "skuId": "00000000-0000-4000-8000-000000000114", "warehouseId": "00000000-0000-4000-8000-000000000301", "onHand": 40, "reserved": 0, "safetyStock": 5 },
+    { "tenant": "acme", "id": "00000000-0000-4000-8000-000000000315", "skuId": "00000000-0000-4000-8000-000000000115", "warehouseId": "00000000-0000-4000-8000-000000000301", "onHand": 9, "reserved": 0, "safetyStock": 5 },
+    { "tenant": "acme", "id": "00000000-0000-4000-8000-000000000316", "skuId": "00000000-0000-4000-8000-000000000116", "warehouseId": "00000000-0000-4000-8000-000000000301", "onHand": 9, "reserved": 0, "safetyStock": 5 },
+    { "tenant": "globex", "id": "00000000-0000-4000-8000-000000000321", "skuId": "00000000-0000-4000-8000-000000000211", "warehouseId": "00000000-0000-4000-8000-000000000302", "onHand": 8, "reserved": 0, "safetyStock": 5 }
+  ],
+  "orders": [
+    {
+      "tenant": "acme",
+      "id": "00000000-0000-4000-8000-000000000401",
+      "customerId": "00000000-0000-4000-8000-000000000011",
+      "status": "FULFILLING",
+      "subtotalMinor": 132800,
+      "taxMinor": 0,
+      "shippingMinor": 0,
+      "items": [
+        { "id": "00000000-0000-4000-8000-000000000411", "skuId": "00000000-0000-4000-8000-000000000111", "quantity": 1, "unitPriceMinor": 129900, "titleSnapshot": "Notebook de desarrollo 16GB" },
+        { "id": "00000000-0000-4000-8000-000000000412", "skuId": "00000000-0000-4000-8000-000000000114", "quantity": 1, "unitPriceMinor": 2900, "titleSnapshot": "Mouse" }
+      ]
+    },
+    {
+      "tenant": "acme",
+      "id": "00000000-0000-4000-8000-000000000402",
+      "customerId": "00000000-0000-4000-8000-000000000012",
+      "status": "CONFIRMED",
+      "subtotalMinor": 149900,
+      "taxMinor": 0,
+      "shippingMinor": 0,
+      "items": [
+        { "id": "00000000-0000-4000-8000-000000000421", "skuId": "00000000-0000-4000-8000-000000000112", "quantity": 1, "unitPriceMinor": 149900, "titleSnapshot": "Notebook de desarrollo 32GB" }
+      ]
+    },
+    {
+      "tenant": "globex",
+      "id": "00000000-0000-4000-8000-000000000501",
+      "customerId": "00000000-0000-4000-8000-000000000021",
+      "status": "PLACED",
+      "subtotalMinor": 99900,
+      "taxMinor": 0,
+      "shippingMinor": 0,
+      "items": [
+        { "id": "00000000-0000-4000-8000-000000000511", "skuId": "00000000-0000-4000-8000-000000000211", "quantity": 1, "unitPriceMinor": 99900, "titleSnapshot": "Globex Notebook" }
+      ]
+    }
+  ],
+  "fulfillments": [
+    { "tenant": "acme", "id": "00000000-0000-4000-8000-000000000601", "orderId": "00000000-0000-4000-8000-000000000401", "status": "SHIPPED", "items": [{ "id": "00000000-0000-4000-8000-000000000611", "orderItemId": "00000000-0000-4000-8000-000000000411", "quantity": 1 }] },
+    { "tenant": "acme", "id": "00000000-0000-4000-8000-000000000602", "orderId": "00000000-0000-4000-8000-000000000401", "status": "PACKED", "items": [{ "id": "00000000-0000-4000-8000-000000000612", "orderItemId": "00000000-0000-4000-8000-000000000412", "quantity": 1 }] }
+  ],
+  "shipments": [
+    { "tenant": "acme", "id": "00000000-0000-4000-8000-000000000701", "fulfillmentId": "00000000-0000-4000-8000-000000000601", "carrier": "demo-carrier", "trackingRef": "SIM-401-A", "status": "IN_TRANSIT", "lastObservedAt": "2026-09-28T12:00:00.000Z" },
+    { "tenant": "acme", "id": "00000000-0000-4000-8000-000000000702", "fulfillmentId": "00000000-0000-4000-8000-000000000602", "carrier": "demo-carrier", "trackingRef": "SIM-401-B", "status": "DELAYED", "lastObservedAt": "2026-09-20T12:00:00.000Z" }
+  ],
+  "observations": [
+    { "tenant": "acme", "id": "00000000-0000-4000-8000-000000000801", "skuId": "00000000-0000-4000-8000-000000000112", "warehouseId": "00000000-0000-4000-8000-000000000301", "countedQuantity": 1, "observedAt": "2026-09-29T00:00:00.000Z" }
+  ]
+}

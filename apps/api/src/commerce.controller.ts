@@ -1,17 +1,5 @@
+import { Body, Controller, Get, Headers, Inject, Param, Post, Req, Res } from '@nestjs/common';
 import {
-  Body,
-  Controller,
-  Get,
-  Headers,
-  Inject,
-  Param,
-  Post,
-  Query,
-  Req,
-  Res,
-} from '@nestjs/common';
-import {
-  checkInventory,
   createActionRequest,
   createAgentRun,
   createSupportTicket,
@@ -19,10 +7,8 @@ import {
   executeUpdateOrder,
   getAgentRun,
   getOrder,
-  getProduct,
   getShippingStatus,
   listAnomalies,
-  listCatalog,
   listTickets,
 } from '@commerce/domain';
 import { classifyIntent, runSpecialist } from '@commerce/ai';
@@ -32,96 +18,6 @@ import { DOMAIN, DomainService } from './domain.service.js';
 @Controller('v1')
 export class CommerceController {
   constructor(@Inject(DOMAIN) private readonly domain: DomainService) {}
-
-  @Get('products')
-  async products(
-    @Req() req: Request,
-    @Query('category') category?: string,
-    @Query('currency') currency?: string,
-    @Query('price_lt') priceLt?: string,
-    @Query('ram_gb') ramGb?: string,
-    @Query('region') region?: string,
-    @Query('cursor') cursor?: string,
-    @Query('limit') limit?: string,
-  ) {
-    const ctx = await this.domain.actorOf(req);
-    const page = await listCatalog(this.domain.requireDb(), ctx, {
-      category,
-      currency,
-      priceLt: priceLt === undefined ? undefined : Number(priceLt),
-      ramGb: ramGb === undefined ? undefined : Number(ramGb),
-      region,
-      cursor,
-      limit: limit === undefined ? undefined : Number(limit),
-    });
-    return {
-      items: page.items.map((sku) => ({
-        id: sku.id,
-        product_id: sku.productId,
-        sku_code: sku.skuCode,
-        title: sku.title,
-        category: sku.category,
-        price_minor: sku.priceMinor,
-        currency: sku.currency,
-        ram_gb: sku.ramGb,
-        cpu_family: sku.cpuFamily,
-        available: sku.available,
-        region: sku.region,
-        observed_at: sku.observedAt,
-      })),
-      next_cursor: page.nextCursor,
-      observed_at: page.observedAt,
-      source: 'sql',
-      version: 'catalog.v1',
-    };
-  }
-
-  @Get('products/:id')
-  async product(@Req() req: Request, @Param('id') id: string, @Query('region') region?: string) {
-    const ctx = await this.domain.actorOf(req);
-    const product = await getProduct(this.domain.requireDb(), ctx, id, region);
-    const observedAt = new Date().toISOString();
-    return {
-      items: product.skus.map((sku) => ({
-        id: sku.id,
-        product_id: sku.productId,
-        sku_code: sku.skuCode,
-        title: sku.title,
-        category: sku.category,
-        price_minor: sku.priceMinor,
-        currency: sku.currency,
-        ram_gb: sku.ramGb,
-        cpu_family: sku.cpuFamily,
-        available: sku.available,
-        region: sku.region,
-        observed_at: sku.observedAt,
-      })),
-      next_cursor: null,
-      observed_at: observedAt,
-      source: 'sql',
-      version: 'catalog.v1',
-    };
-  }
-
-  @Get('inventory/:sku')
-  async inventory(
-    @Req() req: Request,
-    @Param('sku') sku: string,
-    @Query('region') region?: string,
-  ) {
-    const ctx = await this.domain.actorOf(req);
-    const row = await checkInventory(this.domain.requireDb(), ctx, sku, region);
-    return {
-      sku_id: row.skuId,
-      available: row.available,
-      on_hand: row.onHand,
-      reserved: row.reserved,
-      safety_stock: row.safetyStock,
-      region: row.region,
-      observed_at: row.observedAt,
-      source: 'sql',
-    };
-  }
 
   @Get('orders/:id')
   async order(@Req() req: Request, @Param('id') id: string) {

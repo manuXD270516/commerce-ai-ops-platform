@@ -156,6 +156,20 @@ try {
   });
   check('commerce-mcp-server requires authentication on /mcp', mcp.status === 401);
 
+  const unauthenticated = await fetch(
+    `http://127.0.0.1:${process.env.API_PORT ?? 3001}/v1/products`,
+  );
+  check('api rejects catalog calls without a bearer token', unauthenticated.status === 401);
+
+  const catalogHtml = await (await fetch('http://127.0.0.1:3000/catalog')).text();
+  check(
+    'web catalog reaches the api with a signed token and applies price_minor < 150000',
+    catalogHtml.includes('NB-DEV-16') &&
+      catalogHtml.includes('NB-DEV-32') &&
+      !catalogHtml.includes('NB-DEV-32X') &&
+      !catalogHtml.includes('NB-WS-64'),
+  );
+
   const jobId = `${runId}-job`;
   const requireFromWorker = createRequire(join(root, 'apps', 'worker', 'package.json'));
   const { Queue } = await import(pathToFileURL(requireFromWorker.resolve('bullmq')).href);

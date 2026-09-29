@@ -1,15 +1,16 @@
+import { AccessTokenError, AUDIENCES, bearerToken, verifyAccessToken } from '@commerce/contracts';
 import {
   createDb,
   createPool,
+  DomainError,
   isDomainError,
   resolveActor,
-  resolveTenantId,
   type ActorContext,
   type DomainDb,
 } from '@commerce/domain';
 import { Injectable, type OnModuleDestroy } from '@nestjs/common';
 import type { Request } from 'express';
-import { DomainError } from '@commerce/domain';
+import type { AuthConfig } from './config.js';
 import { correlationIdOf } from './http-logging.js';
 
 export const DOMAIN = Symbol('DOMAIN');
@@ -17,24 +18,34 @@ export const DOMAIN = Symbol('DOMAIN');
 @Injectable()
 export class DomainService implements OnModuleDestroy {
   readonly db: DomainDb | undefined;
-  private readonly pool;
 
-  constructor(databaseUrl: string | undefined) {
-    this.pool = databaseUrl ? createPool(databaseUrl) : undefined;
-    this.db = this.pool ? createDb(this.pool) : undefined;
+  constructor(
+    databaseUrl: string | undefined,
+    private readonly auth: AuthConfig | undefined,
+  ) {
+    this.db = databaseUrl ? createDb(createPool(databaseUrl)) : undefined;
   }
 
+  /** Tenant and subject come only from a verified token; the role comes from the membership row. */
   async actorOf(req: Request): Promise<ActorContext> {
-    if (!this.db) throw new DomainError('DEPENDENCY_UNAVAILABLE', 'DATABASE_URL is not configured');
-    const tenantRaw = header(req, 'x-tenant-id');
-    const subjectId = header(req, 'x-subject-id');
-    if (!tenantRaw || !subjectId) {
-      throw new DomainError('FORBIDDEN', 'X-Tenant-Id and X-Subject-Id are required');
+    const token = bearerToken(req.headers.authorization);
+    if (!token || !this.auth) throw new DomainError('UNAUTHENTICATED', 'Bearer token required');
+    let identity;
+    try {
+      identity = verifyAccessToken(token, {
+        issuer: this.auth.issuer,
+        audience: AUDIENCES.api,
+        jwks: this.auth.jwks,
+      });
+    } catch (error) {
+      if (error instanceof AccessTokenError) {
+        throw new DomainError('UNAUTHENTICATED', 'Invalid or expired token');
+      }
+      throw error;
     }
-    const tenantId = await resolveTenantId(this.db, tenantRaw);
-    return resolveActor(this.db, {
-      tenantId,
-      subjectId,
+    return resolveActor(this.requireDb(), {
+      tenantId: identity.tenantId,
+      subjectId: identity.subject,
       correlationId: correlationIdOf(req),
     });
   }
@@ -52,6 +63,8 @@ export class DomainService implements OnModuleDestroy {
 export function mapErrorStatus(error: unknown): number {
   if (!isDomainError(error)) return 500;
   switch (error.code) {
+    case 'UNAUTHENTICATED':
+      return 401;
     case 'VALIDATION_ERROR':
       return 400;
     case 'NOT_FOUND':
@@ -65,12 +78,5 @@ export function mapErrorStatus(error: unknown): number {
       return 429;
     case 'DEPENDENCY_UNAVAILABLE':
       return 503;
-    default:
-      return 500;
   }
-}
-
-function header(req: Request, name: string): string | undefined {
-  const value = req.headers[name];
-  return typeof value === 'string' && value.trim() !== '' ? value.trim() : undefined;
 }
