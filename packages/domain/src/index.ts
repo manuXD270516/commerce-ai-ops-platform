@@ -1,5 +1,5 @@
 /**
- * Application services per bounded context (design.md §1) start in M1. This package must stay
+ * Application services per bounded context (docs/architecture.md §1) start in M1. This package must stay
  * framework-agnostic and must not import @commerce/ai: business rules never depend on a model.
  */
 export const BOUNDED_CONTEXTS = [

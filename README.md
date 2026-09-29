@@ -6,14 +6,13 @@ Plataforma de operaciones e-commerce con APIs de dominio, búsqueda híbrida, wo
 
 ## Documentación
 
-- [Propuesta MVP](openspec/changes/define-commerce-ops-mvp/proposal.md)
-- [Arquitectura, bounded contexts y decisiones](openspec/changes/define-commerce-ops-mvp/design.md) (revisión previa a M0 en §6)
+- [Alcance del MVP](docs/mvp-scope.md)
+- [Arquitectura, bounded contexts y decisiones](docs/architecture.md) (revisión previa a M0 en §6)
 - [Modelo de datos](docs/data-model.md)
 - [Agentes, permisos MCP y seguridad](docs/agents-security-mcp.md)
 - [RAG y evaluaciones](docs/rag-evals.md)
-- [Roadmap M0–M11](docs/roadmap.md)
-- [Tareas](openspec/changes/define-commerce-ops-mvp/tasks.md)
-- [Plan y estado de verificación](openspec/changes/define-commerce-ops-mvp/verification.md)
+- [Roadmap M0–M11](docs/roadmap.md), con el change de OpenSpec de cada milestone
+- Changes activos en [openspec/changes](openspec/changes) (uno por milestone, con tasks.md y verification.md); M0 archivado en `openspec/changes/archive/`, specs promovidas en [openspec/specs](openspec/specs)
 
 ## Estructura
 
@@ -48,6 +47,6 @@ pnpm run infra:down
 
 ## Flujo de trabajo
 
-Cada feature sigue proposal → spec → design → tasks → implementation → verification. El change inicial define el contrato transversal del MVP y su ejecución incremental. Cualquier variación funcional requiere actualizar estos artefactos antes de implementar; nuevas capacidades requieren su propio change. Los delta specs permanecen en el change hasta verificar y archivar.
+Cada feature sigue proposal → spec → design → tasks → implementation → verification, con un change por milestone. Cualquier variación funcional requiere actualizar estos artefactos antes de implementar; nuevas capacidades requieren su propio change. Los delta specs permanecen en el change hasta verificar y archivar.
 
 Los umbrales de evaluación son objetivos propuestos (EXPECTED), no resultados medidos.

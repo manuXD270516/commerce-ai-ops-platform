@@ -1,3 +1,5 @@
+> Instantánea al archivar tras M0. La versión viva de este diseño es `docs/architecture.md`.
+
 ## Context
 
 MVP de portfolio con prácticas cercanas a producción, datos sintéticos y tres workflows completos. Las decisiones siguientes son propuestas concretas para implementar después de esta fase. Supuestos: USD, español, región logística única, usuarios customer/support/inventory/approver/admin y dos tenants de prueba. Identidad mediante OIDC; el rol admin no implica permiso para aprobar órdenes.

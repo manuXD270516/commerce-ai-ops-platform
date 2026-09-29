@@ -20,7 +20,7 @@ function restrictImports(names, patterns = []) {
       {
         paths: names.map((name) => ({
           name,
-          message: 'Violates package boundaries (design.md §6).',
+          message: 'Violates package boundaries (docs/architecture.md §6).',
         })),
         patterns: [
           { group: ['@commerce/*/src/*'], message: 'Import the package entry point, not its src.' },

@@ -33,28 +33,20 @@ Limitaciones: el workflow de GitHub Actions no se ha ejecutado en GitHub porque 
 
 ## Revisión de diseño previa a M0
 
-Realizada el 2026-09-29, requisito "Diseño revisado" de M0 en docs/roadmap.md. Alcance: coherencia entre design.md, docs/ y specs, y decisiones que bloqueaban el bootstrap (gestor y workspaces, runtime, versiones de Next.js/NestJS/LangGraph JS, persistencia y migraciones, formato de contratos, estrategia de tests, observabilidad, entorno local y CI). Resultado: 16 decisiones registradas en design.md §6, ninguna altera comportamiento ni alcance funcional. Pendiente derivado: reformular el escenario "Documentation-only delivery" antes de archivar.
+Realizada el 2026-09-29, requisito "Diseño revisado" de M0 en docs/roadmap.md. Alcance: coherencia entre design.md, docs/ y specs, y decisiones que bloqueaban el bootstrap (gestor y workspaces, runtime, versiones de Next.js/NestJS/LangGraph JS, persistencia y migraciones, formato de contratos, estrategia de tests, observabilidad, entorno local y CI). Resultado: 16 decisiones registradas en design.md §6, ninguna altera comportamiento ni alcance funcional. Pendiente derivado, resuelto en la división del change: el escenario "Documentation-only delivery" se reemplazó por el requisito reformulado "Spec-driven change lifecycle".
 
-## Matriz de trazabilidad prevista
+## Trazabilidad de escenarios
 
-| Capability | Milestones/tareas | Evidencia que exigirá implementación |
-|---|---|---|
-| commerce-domain | M1–M3, M8; 2.*, 3.*, 4.1–4.2, 9.2 | Integración PostgreSQL, constraints/RLS, concurrencia, estados y snapshots |
-| hybrid-retrieval | M4; 5.* | Corpus versionado, ACL, SQL eligibility, recall, citas, retiro e inyección |
-| controlled-mcp | M5/M8; 6.*, 9.* | Contratos de ocho tools; consentimiento, tokens, replay, TTL, revocación y atomicidad |
-| agent-workflows | M3/M6/M7; 4.3, 7.*, 8.* | Routing, tres workflows, presupuestos, degradación y restart |
-| operations-console | M9; 10.* | E2E por rol, estados, teclado, aprobación y reconexión |
-| evaluation-observability | M0/M10/M11; 1.*, 11.*, 12.* | Reportes con diez métricas, trazas, seguridad, carga, rollback y restore |
+| Escenario | Evidencia |
+|---|---|
+| Clean clone | Tabla "Resultados M0": clone limpio en Windows y contenedor Linux, todos los comandos con exit 0 |
+| Correlated request | `infra/scripts/smoke.mjs`: 20/20 con el mismo `correlation_id` y `trace_id` en logs de web y API; traza con spans de `web` y `api` en Jaeger; `apps/api/test/api.test.ts` y `apps/web/test/api-status.test.ts` |
+| Untrusted correlation id | Smoke ("malformed correlation id never reaches logs"); `packages/contracts/test/contracts.test.ts`; `apps/api/test/api.test.ts` |
+| Evaluation report labels | `evals/test/harness.test.ts` ("rejects a simulated run that claims MEASURED results"); reporte `simulated-selftest` |
+| No secrets in the repository | `gitleaks git` 8.30.1 sin hallazgos; `.env.example` con valores `local-only-not-a-secret`; job `checks` de CI incluye el escaneo |
+| Milestone not started | Los once changes `add-*` tienen tareas sin marcar y verification.md con estado "No iniciado" |
+| Archiving a change | Este change: tareas 1.1–2.2 marcadas con la evidencia de este documento y `openspec validate --all --strict` sin errores antes de archivar |
 
-## Checklist documental
+## División del change (2026-09-29)
 
-- Los nueve puntos solicitados se distribuyen entre design.md y docs/data-model.md, agents-security-mcp.md, rag-evals.md y roadmap.md.
-- Los ocho nombres de tools se conservan y tienen clasificación explícita.
-- Las acciones privilegiadas requieren aprobación humana externa al agente.
-- La investigación no autoriza escrituras por sí sola; request_cancellation no equivale a cancelación efectiva.
-- Todos los umbrales son propuestos; fuentes logísticas simuladas están identificadas.
-- Sólo las tareas 1.1–1.3 (M0) están marcadas, con la evidencia de la sección "Resultados M0"; el resto permanece sin marcar.
-
-## Gate final del MVP (pendiente)
-
-Todas las tareas completadas con evidencia, escenarios vinculados a tests, gates de docs/rag-evals.md aprobados y demo reproducible. Cualquier lectura/acción indebida bloquea release. El reporte final incluirá commit, entorno, versiones, fixtures, denominadores, fallos y limitaciones conocidas. Sólo tras esta evidencia se archiva el change y se promueven delta specs a especificaciones principales.
+El change nació como contrato M0–M11. Tras M0 se trasladaron sin cambios de texto 25 requisitos y 31 tareas a once changes de milestone (comprobado mecánicamente contra el commit anterior); los IDs originales de tareas figuran en la sección Impact de cada proposal. Aquí sólo quedan M0, el requisito de ciclo de vida reformulado y un requisito nuevo de bootstrap reproducible que recoge el gate de M0 del roadmap. Arquitectura y alcance pasaron a `docs/architecture.md` y `docs/mvp-scope.md` como documentos vivos.

@@ -1,37 +1,35 @@
 ## ADDED Requirements
 
-### Requirement: Versioned evaluation gates
-El proyecto SHALL medir las diez dimensiones solicitadas con dataset versionado, baseline, holdout y gates de docs/rag-evals.md; resultados incluirán denominadores y configuración reproducible.
+### Requirement: Reproducible bootstrap with correlated smoke
+El repositorio SHALL arrancar desde un clone limpio con versiones exactas y lockfile, ejecutar lint, typecheck, build, tests, contratos y evals con los mismos comandos en local y CI, y verificar mediante smoke que web, API, worker y servidor MCP arrancan y que un request web → api conserva un correlation id visible en logs estructurados, sin secretos en el repositorio.
 
-#### Scenario: Unauthorized effect in release evaluation
-- **WHEN** ocurre una lectura indebida o efecto no autorizado durante las pruebas
-- **THEN** la release falla aunque los promedios restantes superen sus umbrales
+#### Scenario: Clean clone
+- **WHEN** se clona el repositorio y se ejecutan los comandos documentados
+- **THEN** la instalación con lockfile congelado, lint, typecheck, build, tests, contratos y evals terminan sin errores
 
-#### Scenario: Simulated provider benchmark
-- **WHEN** una corrida usa un proveedor simulado
-- **THEN** el reporte la identifica como SIMULATED y no la presenta como latencia/calidad de un proveedor real
+#### Scenario: Correlated request
+- **WHEN** el smoke envía a web un request con un X-Correlation-Id válido
+- **THEN** la respuesta, los logs JSON de web y de API y la traza comparten ese identificador
 
-### Requirement: Correlated traces and protected audit
-El sistema SHALL correlacionar request/run/tool/action, métricas de tokens/latencia y decisiones auditadas sin registrar secretos, PII innecesaria ni chain-of-thought.
+#### Scenario: Untrusted correlation id
+- **WHEN** el header X-Correlation-Id está malformado
+- **THEN** se genera un identificador nuevo y el valor recibido no aparece en ningún log
 
-#### Scenario: Investigate an executed action
-- **WHEN** un revisor autorizado consulta una acción
-- **THEN** identifica actor, aprobación, política, versión, resultado e idempotencia mediante evidencia persistida
+#### Scenario: Evaluation report labels
+- **WHEN** el harness ejecuta una suite contra un objetivo simulado
+- **THEN** el reporte la etiqueta SIMULATED y la validación rechaza cualquier resultado MEASURED en esa corrida
 
-### Requirement: Resilient deployment and recovery
-El MVP SHALL tener un entorno local reproducible y demo cloud con TLS, servicios de datos privados, secretos administrados, health/readiness, migraciones controladas y ensayo de recuperación.
-
-#### Scenario: Redis restart
-- **WHEN** se pierde estado de coordinación de Redis
-- **THEN** outbox/runs durables permiten reconstruir trabajo sin perder aprobaciones ni duplicar efectos, y las escrituras no eluden rate limits durante la recuperación
-
-#### Scenario: Restore rehearsal
-- **WHEN** se restaura un backup en entorno aislado
-- **THEN** se verifican relaciones, auditoría y estado de runs, y se documentan tiempos observados sin afirmar un SLA no medido
+#### Scenario: No secrets in the repository
+- **WHEN** se escanea el historial git
+- **THEN** no se detectan secretos y .env.example sólo contiene valores locales no secretos
 
 ### Requirement: Spec-driven change lifecycle
-Cada feature SHALL seguir proposal → spec → design → tasks → implementation → verification; el change inicial permanecerá sin implementar hasta una instrucción posterior.
+Cada feature SHALL seguir proposal → spec → design → tasks → implementation → verification en un change propio por milestone o capacidad; un change sólo se archiva cuando todas sus tareas están marcadas con evidencia real en su verification.md y la validación estricta de OpenSpec pasa.
 
-#### Scenario: Documentation-only delivery
-- **WHEN** termina esta primera tarea
-- **THEN** existen artefactos revisables, tareas sin marcar y reporte de validación documental, sin aplicaciones ni infraestructura provisionadas
+#### Scenario: Milestone not started
+- **WHEN** un milestone no ha comenzado
+- **THEN** su change existe con tareas sin marcar y su verification.md declara que no hay implementación, sin presentar objetivos como resultados
+
+#### Scenario: Archiving a change
+- **WHEN** se archiva un change
+- **THEN** todas sus tareas están marcadas con evidencia en verification.md y `openspec validate --strict` termina sin errores

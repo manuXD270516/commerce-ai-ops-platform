@@ -1,27 +1,21 @@
 ## Why
 
-Soporte y operaciones necesitan investigar órdenes, recomendar productos elegibles y detectar riesgos de inventario utilizando hechos actuales. Un chatbot sin contratos de dominio, permisos ni evidencia no puede ejecutar estas tareas de forma fiable.
+Antes de construir dominio, retrieval, MCP y agentes, el proyecto necesita un diseño revisado y una base técnica reproducible: monorepo con versiones exactas, entorno local, CI, correlación y trazas, y un harness de evals que no confunda objetivos con mediciones.
 
 ## What Changes
 
-- Definir un MVP completo con consola Next.js, API NestJS, PostgreSQL/pgvector, Redis y workers.
-- Establecer contextos de dominio, contratos de datos y workflows verificables para los tres casos prioritarios.
-- Exponer ocho tools en `commerce-mcp-server`, con autorización por sujeto, tenant, recurso y acción.
-- Integrar búsqueda SQL + semántica, agentes acotados y aprobación persistente para acciones privilegiadas.
-- Incluir evals, trazas y una demo cloud reproducible con datos sintéticos.
+- Registrar la revisión de diseño previa a M0 y las decisiones de bootstrap (ver design.md §6).
+- Crear el monorepo TypeScript con `apps/web`, `apps/api`, `apps/worker`, `apps/commerce-mcp-server` y los paquetes previstos, como esqueletos que compilan y arrancan.
+- Configurar Compose con PostgreSQL + pgvector y Redis, `.env.example` sin secretos, CI y un smoke reproducible con correlation id.
+- Crear el harness de fixtures y evals con reportes EXPECTED/SIMULATED/MEASURED y tracing inicial con OpenTelemetry.
 
-Este change contiene el contrato del MVP M0–M11. En esta entrega se redactan y revisan los artefactos; todas las tareas de implementación permanecen pendientes.
+Este change nació como contrato completo del MVP (M0–M11). Tras completar M0 se dividió: los requisitos y tareas de M1–M11 se trasladaron sin cambios a un change por milestone (`add-commerce-domain-model`, `add-catalog-api`, `add-orders-and-inventory`, `add-hybrid-retrieval`, `add-controlled-mcp`, `add-agent-router`, `add-specialist-agents`, `add-human-approval`, `add-operations-console`, `add-evaluation-gates`, `add-cloud-deployment-demo`). El alcance del MVP vive en `docs/mvp-scope.md` y la arquitectura en `docs/architecture.md`.
 
 ## Capabilities
 
 ### New Capabilities
 
-- `commerce-domain`: catálogo, clientes, órdenes, fulfillment e inventario consistente y aislado.
-- `hybrid-retrieval`: recuperación versionada, filtrada y con evidencia.
-- `controlled-mcp`: tools, autorización, idempotencia y aprobación humana.
-- `agent-workflows`: routing, investigación, recomendaciones y anomalías.
-- `operations-console`: consola operacional y seguimiento de acciones.
-- `evaluation-observability`: datasets, gates, métricas, auditoría y despliegue verificable.
+- `evaluation-observability`: bootstrap reproducible con smoke correlacionado y ciclo de vida spec-driven por milestone. El resto de la capability llega en M10 y M11.
 
 ### Modified Capabilities
 
@@ -29,12 +23,12 @@ Ninguna; proyecto nuevo.
 
 ## Impact
 
-Se prevén apps web, API, worker y MCP; contratos compartidos, persistencia relacional, índices semánticos, pipeline de ingesta, CI y despliegue. No se modificará el proyecto vecino. El diseño usa un monolito modular, con procesos separados cuando lo exige el runtime, sin microservicios por especialista.
+Sin lógica de dominio, migraciones de negocio, llamadas a modelos, embeddings ni recursos cloud. La página web es un scaffold técnico, no la consola de M9. Transportistas y notificaciones siguen fuera de alcance hasta su milestone.
 
 ## Non-goals
 
-Checkout, pagos, reembolsos, compra de productos, modificación de direcciones, ajustes automáticos de stock, reposición autónoma, notificaciones externas reales y multimoneda. `update_order` sólo solicitará cancelación mediante una transición interna aprobada; no confirmará cancelación del transportista. No entrenar modelos ni construir cinco agentes autónomos conversando sin límite.
+Todo lo que corresponde a M1–M11; las exclusiones funcionales del MVP están en `docs/mvp-scope.md`.
 
 ## Success Criteria
 
-Los tres casos funcionan de extremo a extremo con evidencia; ninguna acción sale de su autorización; una aprobación expirada o reutilizada no produce efectos; la consola muestra datos, riesgos y decisiones fuera del chat. La liberación exige los gates de `docs/rag-evals.md` y evidencia de `verification.md`.
+Desde un clone limpio pasan install, lint, formato, typecheck, build, tests, contratos, evals y OpenSpec estricto; el smoke demuestra que las cuatro apps arrancan y que un request web → api comparte correlation id y trace id en logs estructurados.
