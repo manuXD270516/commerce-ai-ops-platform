@@ -10,5 +10,9 @@ minimumReleaseAge: 1440
 
 # Install scripts are denied unless listed here. msgpackr-extract is an optional native speedup
 # for BullMQ; msgpackr falls back to pure JS.
+# onnxruntime-node ships its CPU binaries in the tarball; its install script only fetches optional
+# CUDA builds. protobufjs' script is a version notice.
 allowBuilds:
   msgpackr-extract: false
+  onnxruntime-node: false
+  protobufjs: false

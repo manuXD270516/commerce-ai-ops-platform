@@ -1,7 +1,16 @@
 export const POLICY_VERSION = 'policy.v1';
 export const ANOMALY_RULE_VERSION = 'anomaly.v1';
-export const EMBEDDING_MODEL = 'local-hash-v1';
-export const EMBEDDING_DIM = 32;
+/** Fixed by the M4 embedding spike (add-hybrid-retrieval design.md); the schema column matches. */
+export const EMBEDDING_DIM = 384;
+/** Reciprocal Rank Fusion inputs and output size (docs/rag-evals.md starting point). */
+export const CANDIDATE_K = 30;
+export const CONTEXT_K = 6;
+export const RRF_K = 60;
+/** Chunk budget in approximate tokens (whitespace words); docs/rag-evals.md: 300–600, overlap ≤ 60. */
+export const CHUNK_MAX_TOKENS = 450;
+export const CHUNK_OVERLAP_TOKENS = 60;
+export const RETRIEVAL_CACHE_TTL_MS = 5 * 60 * 1000;
+export const MAX_RECOMMENDATIONS = 3;
 export const MAX_PAGE = 50;
 export const STALE_TRACKING_MS = 6 * 60 * 60 * 1000;
 export const ESCALATION_DELAY_MS = 48 * 60 * 60 * 1000;

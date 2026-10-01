@@ -11,12 +11,14 @@ import {
   listAnomalies,
   listTickets,
 } from '@commerce/domain';
-import { classifyIntent, runSpecialist } from '@commerce/ai';
+import { classifyIntent, createEmbedder, runSpecialist } from '@commerce/ai';
 import type { Request, Response } from 'express';
 import { DOMAIN, DomainService } from './domain.service.js';
 
 @Controller('v1')
 export class CommerceController {
+  private readonly embedder = createEmbedder();
+
   constructor(@Inject(DOMAIN) private readonly domain: DomainService) {}
 
   @Get('orders/:id')
@@ -169,7 +171,14 @@ export class CommerceController {
       modelVersion: 'simulated-llm.v1',
     });
     if (classified.intent !== 'clarify') {
-      await runSpecialist(this.domain.requireDb(), ctx, run.id, classified.intent, body.message);
+      await runSpecialist(
+        this.domain.requireDb(),
+        ctx,
+        run.id,
+        classified.intent,
+        body.message,
+        this.embedder,
+      );
     }
     res.status(202);
     return {

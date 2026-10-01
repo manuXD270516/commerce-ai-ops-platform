@@ -12,10 +12,13 @@
   "dependencies": {
     "@commerce/ai": "workspace:*",
     "@commerce/contracts": "workspace:*",
+    "@commerce/domain": "workspace:*",
+    "pg": "8.23.0",
     "ajv": "8.20.0",
     "ajv-formats": "3.0.1"
   },
   "devDependencies": {
+    "@types/pg": "8.23.1",
     "vitest": "5.0.2"
   }
 }

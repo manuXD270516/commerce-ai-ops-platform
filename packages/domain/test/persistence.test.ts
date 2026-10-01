@@ -1,3 +1,5 @@
+import { readdirSync } from 'node:fs';
+import { join } from 'node:path';
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
@@ -44,12 +46,17 @@ describe.skipIf(!enabled)('commerce domain against PostgreSQL', () => {
     await admin.connect();
     const { rows } = await admin.query('SELECT id FROM commerce.schema_migrations ORDER BY id');
     await admin.end();
-    expect(rows.map((r: { id: string }) => r.id)).toEqual([
+    const files = readdirSync(join(import.meta.dirname, '..', 'migrations'))
+      .filter((f) => f.endsWith('.sql'))
+      .sort();
+    expect(files.slice(0, 5)).toEqual([
       '0001_schema.sql',
       '0002_rls.sql',
       '0003_embeddings.sql',
       '0004_anomaly_dedup.sql',
+      '0005_knowledge.sql',
     ]);
+    expect(rows.map((r: { id: string }) => r.id)).toEqual(files);
   });
 
   it('creates the vector extension and embedding column on chunks', async () => {

@@ -1,0 +1,12 @@
+{"id":"hold-01","suite":"holdout","input":{"role":"customer","query":"Plazo máximo para regresar una compra que no me convenció"},"expected":{"relevant":["kb://acme/policies/returns"]}}
+{"id":"hold-02","suite":"holdout","input":{"role":"customer","query":"¿Los envíos estándar demoran una semana?"},"expected":{"relevant":["kb://acme/policies/shipping"]}}
+{"id":"hold-03","suite":"holdout","input":{"role":"customer","query":"Se me cayó café sobre la computadora, ¿la garantía lo cubre?"},"expected":{"relevant":["kb://acme/policies/warranty"]}}
+{"id":"hold-04","suite":"holdout","input":{"role":"customer","query":"¿Puedo pagar en euros o pesos?"},"expected":{"relevant":["kb://acme/faq/payments"]}}
+{"id":"hold-05","suite":"holdout","input":{"role":"customer","query":"Me arrepentí y quiero anular el pedido"},"expected":{"relevant":["kb://acme/faq/orders"]}}
+{"id":"hold-06","suite":"holdout","input":{"role":"customer","query":"¿Cuánto dura la garantía de un mouse?"},"expected":{"relevant":["kb://acme/policies/warranty"]}}
+{"id":"hold-07","suite":"holdout","input":{"role":"customer","query":"Equipo para correr Docker y máquinas virtuales"},"expected":{"relevant":["kb://acme/products/notebook-dev"]}}
+{"id":"hold-08","suite":"holdout","input":{"role":"customer","query":"¿Una orden puede llegar en varias cajas por separado?"},"expected":{"relevant":["kb://acme/policies/shipping"]}}
+{"id":"hold-09","suite":"holdout","input":{"role":"support","query":"El tracking no se actualiza hace tres días, ¿qué procedimiento sigo?"},"expected":{"relevant":["kb://acme/internal/carrier-claims","kb://acme/policies/shipping"]}}
+{"id":"hold-10","suite":"holdout","input":{"role":"customer","query":"El tracking no se actualiza hace tres días, ¿qué procedimiento sigo?"},"expected":{"relevant":["kb://acme/policies/shipping"],"forbidden":["kb://acme/internal/carrier-claims"]}}
+{"id":"hold-11","suite":"holdout","input":{"role":"customer","query":"Notebook liviana con batería de 14 horas"},"expected":{"relevant":["kb://acme/products/notebook-dev"],"forbidden":["kb://globex/products/notebook"]}}
+{"id":"hold-12","suite":"holdout","input":{"role":"customer","query":"¿Qué pasa con mis datos si cierro la cuenta?"},"expected":{"relevant":["kb://acme/faq/privacy"]}}

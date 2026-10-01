@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -10,10 +11,13 @@ import {
   type EvalReport,
   type GateDefinition,
 } from './report.js';
+import { runRetrievalSuites } from './retrieval-suite.js';
 import { runExactMatchSuite } from './suites.js';
 import { correlationContractTarget, simulatedProviderTarget } from './targets.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+const envFile = join(root, '..', '.env');
+if (existsSync(envFile)) process.loadEnvFile(envFile);
 const outDir = process.env.EVALS_REPORT_DIR ?? join(root, 'reports');
 
 const gatesFile = JSON.parse(await readFile(join(root, 'gates', 'gates.v0.json'), 'utf8')) as {
@@ -49,6 +53,14 @@ const reports: EvalReport[] = [
       'Plumbing check with one deliberate mismatch (sim-004); says nothing about any provider.',
   }),
 ];
+
+// Suites against real code and the local database; skipped (and said so) without a database.
+const { DATABASE_ADMIN_URL: adminUrl, DATABASE_URL: runtimeUrl } = process.env;
+if (adminUrl && runtimeUrl) {
+  reports.push(...(await runRetrievalSuites(join(root, 'fixtures'), { adminUrl, runtimeUrl })));
+} else {
+  console.log('retrieval suites skipped: DATABASE_ADMIN_URL and DATABASE_URL are not set');
+}
 
 let exitCode = 0;
 for (const report of reports) {

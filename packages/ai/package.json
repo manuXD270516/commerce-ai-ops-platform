@@ -16,7 +16,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@commerce/domain": "workspace:*"
+    "@commerce/domain": "workspace:*",
+    "@huggingface/transformers": "4.3.0"
   },
   "devDependencies": {
     "vitest": "5.0.2"

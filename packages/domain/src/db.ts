@@ -194,6 +194,7 @@ export interface DocumentsTable {
   kind: string;
   source_uri: string;
   product_id: string | null;
+  title: Generated<string>;
   created_at: Generated<Date>;
 }
 
@@ -209,6 +210,9 @@ export interface DocumentVersionsTable {
   valid_from: Date;
   valid_to: Date | null;
   acl: Json;
+  created_at: Generated<Date>;
+  published_at: Date | null;
+  retired_at: Date | null;
 }
 
 export interface ChunksTable {
@@ -219,7 +223,8 @@ export interface ChunksTable {
   body: string;
   section: string;
   token_count: number;
-  embedding: string | null;
+  embedding: string;
+  embedding_model: string;
 }
 
 export interface AgentRunsTable {

@@ -1,19 +1,20 @@
-import type { ActorContext, DomainDb } from '@commerce/domain';
+import type { ActorContext, DomainDb, Embedder } from '@commerce/domain';
 import {
   DEFAULT_BUDGETS,
   appendRunEvent,
-  checkInventory,
   consumeBudget,
   getAgentRun,
   getOrder,
   getShippingStatus,
   latestCheckpoint,
   listAnomalies,
-  listCatalog,
-  retrieve,
+  recommendProducts,
   saveCheckpoint,
-  selectPolicyForOrder,
+  selectApplicablePolicy,
 } from '@commerce/domain';
+import { HASH_EMBEDDER_MODEL } from '@commerce/domain';
+
+export * from './embeddings.js';
 
 export const PROVIDER_MODES = ['real', 'simulated'] as const;
 export type ProviderMode = (typeof PROVIDER_MODES)[number];
@@ -22,7 +23,7 @@ export const SELECTED_PROVIDER = {
   id: 'simulated-llm',
   model: 'simulated-llm.v1',
   promptVersion: 'router.v1',
-  embeddings: 'local-hash-v1',
+  embeddings: HASH_EMBEDDER_MODEL,
   mode: 'simulated' as const,
 };
 
@@ -64,6 +65,7 @@ export async function runSpecialist(
   runId: string,
   intent: Intent,
   message: string,
+  embedder: Embedder,
 ): Promise<{ status: string; summary: string }> {
   const used = { llmCalls: 0, toolCalls: 0, tokens: 0, startedAt: Date.now() };
   const checkpoint = await latestCheckpoint(db, ctx, runId);
@@ -79,7 +81,7 @@ export async function runSpecialist(
     if (intent === 'order') {
       summary = await investigateOrder(db, ctx, message);
     } else if (intent === 'recommendation') {
-      summary = await recommend(db, ctx, message);
+      summary = await recommend(db, ctx, embedder, message);
     } else if (intent === 'inventory') {
       summary = await explainInventory(db, ctx);
     } else {
@@ -111,17 +113,18 @@ async function investigateOrder(db: DomainDb, ctx: ActorContext, message: string
   if (!orderId) return 'Aclaración: indique un order_id propio.';
   const order = await getOrder(db, ctx, orderId);
   const shipping = await getShippingStatus(db, ctx, orderId);
-  let policyNote = 'sin política aplicable';
-  try {
-    const policy = await selectPolicyForOrder(db, ctx, {
-      kind: 'shipping',
-      purchasedAt: new Date(order.items.length ? '2026-09-01T00:00:00.000Z' : Date.now()),
-      region: 'us-east',
-    });
-    if (policy) policyNote = `${policy.citation.sourceUri} v${policy.citation.version}`;
-  } catch {
-    policyNote = 'incertidumbre: fuentes contradictorias; me abstengo de afirmar una obligación';
-  }
+  const policy = await selectApplicablePolicy(db, ctx, {
+    orderId: order.id,
+    kind: 'shipping',
+    region: 'us-east',
+    locale: 'es',
+  });
+  const policyNote =
+    policy.status === 'APPLICABLE'
+      ? `${policy.policy.sourceUri} v${String(policy.policy.version)}`
+      : policy.reason === 'CONFLICTING_POLICIES'
+        ? 'incertidumbre: fuentes contradictorias; me abstengo de afirmar una obligación'
+        : 'sin política aplicable';
   const lost = shipping.shipments.some((s) => s.status === 'LOST');
   const disputed = shipping.shipments.some((s) => s.status === 'DELIVERED_DISPUTED');
   const stale = shipping.shipments.filter((s) => s.stale);
@@ -145,35 +148,30 @@ async function investigateOrder(db: DomainDb, ctx: ActorContext, message: string
   return facts.filter(Boolean).join('. ');
 }
 
-async function recommend(db: DomainDb, ctx: ActorContext, message: string): Promise<string> {
+async function recommend(
+  db: DomainDb,
+  ctx: ActorContext,
+  embedder: Embedder,
+  message: string,
+): Promise<string> {
   const budget = /1500|1\.500|150000/.test(message) ? 150_000 : undefined;
-  const page = await listCatalog(db, ctx, {
+  const result = await recommendProducts(db, ctx, embedder, {
+    query: message,
     category: 'notebook',
     currency: 'USD',
     priceLt: budget,
     region: 'us-east',
-    limit: 3,
   });
-  const eligible = [];
-  for (const sku of page.items) {
-    const stock = await checkInventory(db, ctx, sku.id, 'us-east');
-    if (stock.available <= 0) continue;
-    const docs = await retrieve(db, ctx, {
-      query: sku.title,
-      kind: 'product',
-      productId: sku.productId,
-    });
-    eligible.push({
-      sku: sku.skuCode,
-      priceMinor: sku.priceMinor,
-      available: stock.available,
-      citation: docs[0]?.citation.sourceUri ?? 'sql',
-    });
-  }
-  if (eligible.length === 0) {
+  if (result.status === 'NO_CANDIDATES') {
     return 'No hay candidatos que cumplan presupuesto y atributos; no relajo restricciones.';
   }
-  return `Hasta tres opciones elegibles: ${JSON.stringify(eligible.slice(0, 3))}. Recomendación, no reserva.`;
+  const eligible = result.items.map((i) => ({
+    sku: i.skuCode,
+    priceMinor: i.priceMinor,
+    available: i.available,
+    citation: i.evidence[0]?.sourceUri ?? 'sql',
+  }));
+  return `Hasta tres opciones elegibles: ${JSON.stringify(eligible)}. Recomendación, no reserva.`;
 }
 
 async function explainInventory(db: DomainDb, ctx: ActorContext): Promise<string> {

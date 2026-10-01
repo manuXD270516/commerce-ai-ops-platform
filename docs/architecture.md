@@ -121,7 +121,7 @@ Greenfield: M0 crea herramientas y estructura; M1 introduce schema y fixtures ve
 
 ## Open Questions
 
-Antes de M6: proveedor/modelo y dimensión de embeddings mediante spike evaluado. Antes de M11: región, presupuesto mensual y proveedor OIDC. Valores por defecto de SLA y umbrales son fixtures de demo versionados, no políticas de un comercio real. Estas decisiones no bloquean el diseño y ninguna autoriza aprovisionamiento ahora.
+Embeddings: fijados en M4 (`local-hash-v1`, 384 dimensiones; ver `openspec/changes/archive/*-add-hybrid-retrieval/design.md`); medir un modelo neuronal abierto queda pendiente de autorizar la descarga de pesos. Antes de M6: proveedor/modelo de lenguaje. Antes de M11: región, presupuesto mensual y proveedor OIDC. Valores por defecto de SLA y umbrales son fixtures de demo versionados, no políticas de un comercio real. Estas decisiones no bloquean el diseño y ninguna autoriza aprovisionamiento ahora.
 
 ## References
 

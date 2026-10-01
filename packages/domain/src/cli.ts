@@ -1,7 +1,15 @@
 import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { migrate, seedCommerceDomain, type MigrateUrls } from './index.js';
+import {
+  createDb,
+  createPool,
+  hashEmbedder,
+  migrate,
+  seedCommerceDomain,
+  seedKnowledgeCorpus,
+  type MigrateUrls,
+} from './index.js';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '../../..');
 
@@ -29,7 +37,23 @@ if (command === 'migrate') {
   const key = process.env.PII_ENCRYPTION_KEY;
   if (!key) throw new Error('PII_ENCRYPTION_KEY is required');
   await seedCommerceDomain(urls().migratorUrl, key);
-  console.log(JSON.stringify({ seeded: 'commerce-domain@0.2.0' }));
+  // The corpus goes through the runtime role and the ingestion service identity, like any ingest.
+  const db = createDb(createPool(urls().runtimeUrl));
+  try {
+    const docs = await seedKnowledgeCorpus(db, hashEmbedder());
+    console.log(
+      JSON.stringify({
+        seeded: 'commerce-domain@0.2.0',
+        knowledge: {
+          corpus: 'knowledge@0.1.0',
+          versions: docs.length,
+          new: docs.filter((d) => !d.duplicate).length,
+        },
+      }),
+    );
+  } finally {
+    await db.destroy();
+  }
 } else {
   throw new Error(`unknown command ${command}`);
 }

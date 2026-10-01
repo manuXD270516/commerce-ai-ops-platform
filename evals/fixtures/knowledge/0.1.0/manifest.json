@@ -1,0 +1,21 @@
+{
+  "id": "knowledge",
+  "version": "0.1.0",
+  "kind": "synthetic",
+  "created": "2026-09-29",
+  "description": "M4 retrieval spike. Synthetic Spanish corpus for two tenants (versioned returns policy, shipping by region, warranty, FAQ, product docs, a support-only procedure and a prompt-injection document) plus graded queries: 14 dev and 12 holdout, each with relevant and forbidden source URIs. Labels written by hand from the corpus text; single author, not adjudicated by a second reviewer.",
+  "files": [
+    {
+      "path": "corpus.jsonl",
+      "sha256": "a3dcb57e41e5eba3a331233b8010db4953028fbdb5e2ae437f7659096fbbbef1"
+    },
+    {
+      "path": "queries-dev.jsonl",
+      "sha256": "dc5c428d037dc1accd4a72acb60766952384f1670be48ca0fad1599057fdb269"
+    },
+    {
+      "path": "queries-holdout.jsonl",
+      "sha256": "e1052253d48a45bb3a513f2ebbe4e7eaefaa0fa2bad4368d3f46eb60ede09a95"
+    }
+  ]
+}

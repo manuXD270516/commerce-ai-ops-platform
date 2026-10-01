@@ -14,6 +14,7 @@ export * from './fulfillment.js';
 export * from './idempotency.js';
 export * from './inventory.js';
 export * from './knowledge.js';
+export * from './knowledge-corpus.js';
 export * from './migrate.js';
 export * from './orders.js';
 export * from './pii.js';

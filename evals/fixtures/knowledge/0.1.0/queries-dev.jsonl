@@ -1,0 +1,14 @@
+{"id":"dev-01","suite":"dev","input":{"role":"customer","query":"¿Cuántos días tengo para devolver un producto?"},"expected":{"relevant":["kb://acme/policies/returns"]}}
+{"id":"dev-02","suite":"dev","input":{"role":"customer","query":"¿Quién paga el envío si regreso un equipo que vino fallado?"},"expected":{"relevant":["kb://acme/policies/returns"]}}
+{"id":"dev-03","suite":"dev","input":{"role":"customer","query":"¿Cuánto tarda en llegar mi pedido?"},"expected":{"relevant":["kb://acme/policies/shipping"]}}
+{"id":"dev-04","suite":"dev","input":{"role":"customer","query":"Mi paquete lleva dos días sin moverse en el seguimiento"},"expected":{"relevant":["kb://acme/policies/shipping"]}}
+{"id":"dev-05","suite":"dev","input":{"role":"customer","query":"¿Qué cubre la garantía del portátil?"},"expected":{"relevant":["kb://acme/policies/warranty"]}}
+{"id":"dev-06","suite":"dev","input":{"role":"customer","query":"¿Qué tarjetas aceptan?"},"expected":{"relevant":["kb://acme/faq/payments"]}}
+{"id":"dev-07","suite":"dev","input":{"role":"customer","query":"Quiero cambiar la dirección de entrega de mi compra"},"expected":{"relevant":["kb://acme/faq/orders"]}}
+{"id":"dev-08","suite":"dev","input":{"role":"customer","query":"Necesito que borren mi información personal"},"expected":{"relevant":["kb://acme/faq/privacy"]}}
+{"id":"dev-09","suite":"dev","input":{"role":"customer","query":"Laptop para programar con buena batería"},"expected":{"relevant":["kb://acme/products/notebook-dev"]}}
+{"id":"dev-10","suite":"dev","input":{"role":"customer","query":"Ratón sin cable, ¿qué resolución tiene?"},"expected":{"relevant":["kb://acme/products/mouse"]}}
+{"id":"dev-11","suite":"dev","input":{"role":"support","query":"Cómo reclamar al transportista un paquete perdido"},"expected":{"relevant":["kb://acme/internal/carrier-claims"]}}
+{"id":"dev-12","suite":"dev","input":{"role":"customer","query":"Cómo reclamar al transportista un paquete perdido"},"expected":{"relevant":["kb://acme/policies/shipping"],"forbidden":["kb://acme/internal/carrier-claims"]}}
+{"id":"dev-13","suite":"dev","input":{"role":"customer","query":"Devoluciones hasta 60 días con envío cubierto"},"expected":{"relevant":["kb://acme/policies/returns"],"forbidden":["kb://globex/policies/returns"]}}
+{"id":"dev-14","suite":"dev","input":{"role":"customer","query":"¿En cuánto tiempo me devuelven el dinero?"},"expected":{"relevant":["kb://acme/policies/returns"]}}
