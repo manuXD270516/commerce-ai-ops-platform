@@ -124,6 +124,25 @@ function rolledOut(kind, name, timeout = '240s') {
   }
 }
 
+/** Last log line of the migration pod that succeeded (failed retries are skipped). */
+function migrateResult() {
+  const pod = kubectl([
+    '-n',
+    'commerce',
+    'get',
+    'pods',
+    '-l',
+    'job-name=migrate',
+    '-o',
+    'jsonpath={.items[?(@.status.phase=="Succeeded")].metadata.name}',
+  ])
+    .trim()
+    .split(' ')[0];
+  return pod
+    ? kubectl(['-n', 'commerce', 'logs', pod]).trim().split('\n').at(-1)
+    : 'no successful migration pod';
+}
+
 function cleanup() {
   if (keep) {
     console.log(`cluster kept: docker exec -it ${NAME} kubectl -n commerce get pods`);
@@ -228,17 +247,13 @@ try {
       'wait',
       '--for=condition=complete',
       'job/migrate',
-      '--timeout=300s',
+      '--timeout=600s',
     ]);
     migrated = true;
   } catch {
     // reported below
   }
-  check(
-    'migration job completes (migrate + seed --if-empty)',
-    migrated,
-    kubectl(['-n', 'commerce', 'logs', 'job/migrate']).trim().split('\n').at(-1),
-  );
+  check('migration job completes (migrate + seed --if-empty)', migrated, migrateResult());
   kustomizeApply('app.kubernetes.io/component=app');
   const apps = ['api', 'worker', 'mcp', 'web'].map((d) => rolledOut('deployment', d));
   timings.k8s_deploy_to_ready_ms = performance.now() - t2;
@@ -384,8 +399,8 @@ try {
 
   kubectl(['-n', 'commerce', 'delete', 'job', 'migrate', '--wait=true']);
   kustomizeApply('app.kubernetes.io/component=migrate');
-  kubectl(['-n', 'commerce', 'wait', '--for=condition=complete', 'job/migrate', '--timeout=300s']);
-  const rerun = kubectl(['-n', 'commerce', 'logs', 'job/migrate']).trim().split('\n').at(-1);
+  kubectl(['-n', 'commerce', 'wait', '--for=condition=complete', 'job/migrate', '--timeout=600s']);
+  const rerun = migrateResult();
   const runsAfter = kubectl([
     '-n',
     'commerce',

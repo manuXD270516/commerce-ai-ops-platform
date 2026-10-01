@@ -10,8 +10,9 @@ metadata:
     app.kubernetes.io/name: migrate
     app.kubernetes.io/component: migrate
 spec:
-  backoffLimit: 2
-  activeDeadlineSeconds: 600
+  # Retries with exponential back-off cover a database or network policy that is not ready yet.
+  backoffLimit: 6
+  activeDeadlineSeconds: 900
   ttlSecondsAfterFinished: 86400
   template:
     metadata:

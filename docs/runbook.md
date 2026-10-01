@@ -79,6 +79,7 @@ Backup lógico: `docker compose -f infra/compose.prod.yaml exec -T postgres pg_d
 | Restart api + worker hasta ready | 4,6 s |
 | Rollback: detectar release rota / volver al tag anterior | 2,7 s / 4,7 s |
 | Backup (pg_dump, 187 KiB) / restore aislado completo | 0,46 s / 4,9 s |
+| k3s local: cluster listo / import de imágenes / despliegue hasta ready | 9,9 s / 166 s / 46 s |
 
 ## AKS (listo para desplegar, pendiente de autorización)
 

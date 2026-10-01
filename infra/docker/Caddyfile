@@ -11,7 +11,7 @@ https://localhost {
 		Strict-Transport-Security "max-age=31536000"
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "DENY"
-		Referrer-Policy "no-referrer"
+		Referrer-Policy "same-origin"
 		-Server
 	}
 	# Public API under /v1 and its liveness probe; MCP and the worker are not routed at all.
