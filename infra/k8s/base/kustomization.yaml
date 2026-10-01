@@ -1,0 +1,23 @@
+# Kubernetes manifests of the app, shared by every cluster. Overlays add what differs:
+#   overlays/aks    Azure: Key Vault CSI secrets via workload identity, app-routing ingress, ACR images
+#   overlays/local  k3s/kind in Docker: in-cluster PostgreSQL/Redis, Secret created from .local/prod
+# Deploy order: the migration job (label app.kubernetes.io/component=migrate) first, then the rest
+# (docs/runbook.md). No secret value is ever written in these files.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: commerce
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: commerce-ai-ops
+    includeSelectors: false
+resources:
+  - namespace.yaml
+  - serviceaccount.yaml
+  - config.yaml
+  - migrate-job.yaml
+  - api.yaml
+  - worker.yaml
+  - mcp.yaml
+  - web.yaml
+  - ingress.yaml
+  - networkpolicies.yaml

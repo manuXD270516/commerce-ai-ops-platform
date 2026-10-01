@@ -1,0 +1,19 @@
+# The private data network on Azure: PostgreSQL (delegated subnet) and Redis (private endpoint)
+# live in DATA_SUBNETS_CIDR; only data-access pods may open connections there.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: data-access-egress
+  labels:
+    app.kubernetes.io/component: platform
+spec:
+  podSelector:
+    matchLabels:
+      commerce.io/data-access: 'true'
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - ipBlock: { cidr: 10.42.16.0/23 }
+      ports:
+        - { protocol: TCP, port: 5432 }
+        - { protocol: TCP, port: 6380 }

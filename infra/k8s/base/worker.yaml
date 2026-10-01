@@ -1,0 +1,85 @@
+# No Service and no ingress: the worker has no inbound traffic besides its own probes.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  labels:
+    app.kubernetes.io/name: worker
+    app.kubernetes.io/component: app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: worker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: worker
+        commerce.io/data-access: 'true'
+    spec:
+      serviceAccountName: commerce-app
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: worker
+          image: commerce-ai-ops/worker:local
+          ports:
+            - { name: health, containerPort: 3002 }
+          envFrom:
+            - configMapRef: { name: app-config }
+          env:
+            - { name: WORKER_HOST, value: 0.0.0.0 }
+            - { name: WORKER_HEALTH_PORT, value: '3002' }
+          startupProbe:
+            httpGet: { path: /healthz, port: health }
+            periodSeconds: 2
+            failureThreshold: 30
+          livenessProbe:
+            httpGet: { path: /healthz, port: health }
+            periodSeconds: 10
+          readinessProbe:
+            httpGet: { path: /readyz, port: health }
+            periodSeconds: 5
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { cpu: '1', memory: 512Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          volumeMounts:
+            - { name: secrets, mountPath: /run/secrets/app, readOnly: true }
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - name: secrets
+          secret:
+            secretName: commerce-app-secrets
+            items:
+              - { key: database_url, path: database_url }
+              - { key: redis_url, path: redis_url }
+              - { key: pii_key, path: pii_key }
+              - { key: jwks.json, path: jwks.json }
+        - name: tmp
+          emptyDir: {}
+---
+# Scales on CPU; leases and the PostgreSQL recovery sweep make extra workers safe.
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: worker
+  labels:
+    app.kubernetes.io/component: app
+spec:
+  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: worker }
+  minReplicas: 1
+  maxReplicas: 3
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: { type: Utilization, averageUtilization: 75 }

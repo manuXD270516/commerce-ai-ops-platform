@@ -1,13 +1,14 @@
 name: deploy
 
-# Manual cloud deployment of an already-tested commit (M11). It has never been run: it stays inert
-# until the repository variable DEPLOY_ENABLED is 'true' and AWS_ROLE_ARN / AWS_REGION point at an
-# account whose region, budget and OIDC trust were approved (docs/runbook.md §Cloud).
+# Manual AKS deployment of an already-tested commit (M11, deployment-ready). It has never been run:
+# it stays inert until the repository variable DEPLOY_ENABLED is 'true' and the AZURE_* variables
+# point at infrastructure created from infra/terraform/azure with the owner's authorization
+# (docs/runbook.md, "AKS"). No stored cloud keys: GitHub OIDC -> federated managed identity.
 on:
   workflow_dispatch:
     inputs:
-      image_tag:
-        description: 'Commit SHA to deploy (images are tagged with it, immutable)'
+      ref:
+        description: 'Commit SHA to deploy (images are tagged with it; tags are immutable)'
         required: true
 
 permissions:
@@ -15,7 +16,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: deploy
+  group: deploy-aks
   cancel-in-progress: false
 
 jobs:
@@ -23,39 +24,89 @@ jobs:
     if: vars.DEPLOY_ENABLED == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
-    environment: demo
+    environment: aks-demo
     env:
-      AWS_REGION: ${{ vars.AWS_REGION }}
-      IMAGE_TAG: ${{ inputs.image_tag }}
+      IMAGE_TAG: ${{ inputs.ref }}
+      ACR_NAME: ${{ vars.AZURE_ACR_NAME }}
+      RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+      AKS_NAME: ${{ vars.AZURE_AKS_NAME }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ inputs.image_tag }}
-      - name: AWS credentials via GitHub OIDC (no stored keys)
+          ref: ${{ inputs.ref }}
+
+      - name: Refuse anything but a full commit SHA
+        run: '[[ "$IMAGE_TAG" =~ ^[0-9a-f]{40}$ ]] || { echo "ref must be a 40-char commit SHA"; exit 1; }'
+
+      - name: Azure login with GitHub OIDC (federated credential, no secret)
         run: |
-          token=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
-            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sts.amazonaws.com" | jq -r .value)
-          creds=$(aws sts assume-role-with-web-identity --role-arn "${{ vars.AWS_ROLE_ARN }}" \
-            --role-session-name "deploy-${GITHUB_RUN_ID}" --web-identity-token "$token" \
-            --duration-seconds 3600 --query Credentials --output json)
-          {
-            echo "AWS_ACCESS_KEY_ID=$(jq -r .AccessKeyId <<<"$creds")"
-            echo "AWS_SECRET_ACCESS_KEY=$(jq -r .SecretAccessKey <<<"$creds")"
-            echo "AWS_SESSION_TOKEN=$(jq -r .SessionToken <<<"$creds")"
-          } >> "$GITHUB_ENV"
-          echo "::add-mask::$(jq -r .SecretAccessKey <<<"$creds")"
-      - name: Build and push immutable images
+          token=$(curl -sSf -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=api://AzureADTokenExchange" | jq -r .value)
+          az login --service-principal --username "${{ vars.AZURE_CLIENT_ID }}" \
+            --tenant "${{ vars.AZURE_TENANT_ID }}" --federated-token "$token" --output none
+          az account set --subscription "${{ vars.AZURE_SUBSCRIPTION_ID }}"
+
+      - name: Build and push immutable images to ACR
         run: |
-          registry=$(aws sts get-caller-identity --query Account --output text).dkr.ecr.${AWS_REGION}.amazonaws.com
-          aws ecr get-login-password | docker login --username AWS --password-stdin "$registry"
+          az acr login --name "$ACR_NAME"
+          registry="$ACR_NAME.azurecr.io"
           for target in api worker mcp web migrate; do
-            docker build -f infra/docker/Dockerfile --target "$target" \
-              -t "$registry/commerce-ai-ops/$target:$IMAGE_TAG" .
-            docker push "$registry/commerce-ai-ops/$target:$IMAGE_TAG"
+            image="$registry/commerce-ai-ops/$target:$IMAGE_TAG"
+            if az acr manifest show --name "$image" --output none 2>/dev/null; then
+              echo "$image already exists (immutable); not rebuilding"; continue
+            fi
+            docker build -f infra/docker/Dockerfile --target "$target" -t "$image" .
+            docker push "$image"
           done
-      - name: Forward-only migrations (one-off task), then roll the services
+
+      - name: Render the release overlay (provider values + image tags)
         run: |
-          # Task definitions reference the new tag through terraform (-var image_tag); ECS's
-          # deployment circuit breaker rolls back automatically if the new tasks fail health checks.
-          echo "terraform -chdir=infra/terraform/aws apply -var image_tag=$IMAGE_TAG ... (operator-run, see runbook)"
-          exit 1
+          cat > infra/k8s/overlays/aks/params.env <<EOF
+          KEY_VAULT_NAME=${{ vars.AZURE_KEY_VAULT_NAME }}
+          AZURE_TENANT_ID=${{ vars.AZURE_TENANT_ID }}
+          AZURE_WORKLOAD_CLIENT_ID=${{ vars.AZURE_WORKLOAD_CLIENT_ID }}
+          PUBLIC_HOST=${{ vars.PUBLIC_HOST }}
+          TLS_CERT_KEYVAULT_URI=${{ vars.TLS_CERT_KEYVAULT_URI }}
+          DATA_SUBNETS_CIDR=${{ vars.DATA_SUBNETS_CIDR }}
+          EOF
+          mkdir -p "$RUNNER_TEMP/release"
+          {
+            echo "apiVersion: kustomize.config.k8s.io/v1beta1"
+            echo "kind: Kustomization"
+            echo "resources: [$GITHUB_WORKSPACE/infra/k8s/overlays/aks]"
+            echo "images:"
+            for target in api worker mcp web migrate; do
+              echo "  - { name: $ACR_NAME.azurecr.io/commerce-ai-ops/$target, newTag: $IMAGE_TAG }"
+            done
+          } > "$RUNNER_TEMP/release/kustomization.yaml"
+          sed -i "s#commerceopsacr.azurecr.io#$ACR_NAME.azurecr.io#g" infra/k8s/overlays/aks/kustomization.yaml
+          kubectl kustomize "$RUNNER_TEMP/release" > "$RUNNER_TEMP/release.yaml"
+          grep -q "GIT-SHA" "$RUNNER_TEMP/release.yaml" && { echo "unresolved image tag"; exit 1; } || true
+
+      - name: Cluster credentials (Entra ID, kubelogin)
+        run: |
+          az aks get-credentials --resource-group "$RESOURCE_GROUP" --name "$AKS_NAME" --overwrite-existing
+          kubelogin convert-kubeconfig -l azurecli
+
+      - name: Platform objects, then the migration job (migrate + seed --if-empty)
+        run: |
+          kubectl apply -l app.kubernetes.io/component=platform -f "$RUNNER_TEMP/release.yaml"
+          kubectl -n commerce delete job migrate --ignore-not-found --wait=true
+          kubectl apply -l app.kubernetes.io/component=migrate -f "$RUNNER_TEMP/release.yaml"
+          kubectl -n commerce wait --for=condition=complete job/migrate --timeout=600s
+
+      - name: Roll the apps; undo on failure
+        run: |
+          kubectl apply -l app.kubernetes.io/component=app -f "$RUNNER_TEMP/release.yaml"
+          for d in api worker mcp web; do
+            if ! kubectl -n commerce rollout status "deployment/$d" --timeout=300s; then
+              echo "rollout of $d failed: undoing"
+              for u in api worker mcp web; do kubectl -n commerce rollout undo "deployment/$u" || true; done
+              exit 1
+            fi
+          done
+
+      - name: Smoke through the public ingress
+        run: |
+          curl -sSf "https://${{ vars.PUBLIC_HOST }}/healthz"
+          test "$(curl -s -o /dev/null -w '%{http_code}' "https://${{ vars.PUBLIC_HOST }}/v1/products")" = 401

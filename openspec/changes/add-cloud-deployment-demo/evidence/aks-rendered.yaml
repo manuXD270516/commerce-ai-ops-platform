@@ -1,0 +1,889 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    app.kubernetes.io/component: platform
+    app.kubernetes.io/part-of: commerce-ai-ops
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/warn: restricted
+  name: commerce
+---
+apiVersion: v1
+automountServiceAccountToken: false
+kind: ServiceAccount
+metadata:
+  annotations:
+    azure.workload.identity/client-id: 00000000-0000-0000-0000-000000000000
+  labels:
+    app.kubernetes.io/component: platform
+    app.kubernetes.io/part-of: commerce-ai-ops
+  name: commerce-app
+  namespace: commerce
+---
+apiVersion: v1
+data:
+  AUTH_ISSUER: http://127.0.0.1:3000/local-issuer
+  AUTH_JWKS_FILE: /run/secrets/app/jwks.json
+  DATABASE_URL_FILE: /run/secrets/app/database_url
+  EMBEDDINGS_CACHE_DIR: /tmp/embeddings
+  LOG_LEVEL: info
+  NODE_ENV: production
+  PII_ENCRYPTION_KEY_FILE: /run/secrets/app/pii_key
+  REDIS_URL_FILE: /run/secrets/app/redis_url
+  RUN_EXECUTION: queue
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/component: platform
+    app.kubernetes.io/part-of: commerce-ai-ops
+  name: app-config
+  namespace: commerce
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: app
+    app.kubernetes.io/name: api
+    app.kubernetes.io/part-of: commerce-ai-ops
+  name: api
+  namespace: commerce
+spec:
+  ports:
+  - name: http
+    port: 3001
+    targetPort: http
+  selector:
+    app.kubernetes.io/name: api
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: app
+    app.kubernetes.io/name: mcp
+    app.kubernetes.io/part-of: commerce-ai-ops
+  name: mcp
+  namespace: commerce
+spec:
+  ports:
+  - name: http
+    port: 3003
+    targetPort: http
+  selector:
+    app.kubernetes.io/name: mcp
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/component: app
+    app.kubernetes.io/name: web
+    app.kubernetes.io/part-of: commerce-ai-ops
+  name: web
+  namespace: commerce
+spec:
+  ports:
+  - name: http
+    port: 3000
+    targetPort: http
+  selector:
+    app.kubernetes.io/name: web
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: app
+    app.kubernetes.io/name: api
+    app.kubernetes.io/part-of: commerce-ai-ops
+  name: api
+  namespace: commerce
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: api
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: api
+        azure.workload.identity/use: "true"
+        commerce.io/data-access: "true"
+    spec:
+      containers:
+      - env:
+        - name: API_HOST
+          value: 0.0.0.0
+        - name: API_PORT
+          value: "3001"
+        envFrom:
+        - configMapRef:
+            name: app-config
+        image: commerceopsacr.azurecr.io/commerce-ai-ops/api:GIT-SHA
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+          periodSeconds: 10
+        name: api
+        ports:
+        - containerPort: 3001
+          name: http
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /readyz
+            port: http
+          periodSeconds: 5
+        resources:
+          limits:
+            cpu: "1"
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+        startupProbe:
+          failureThreshold: 30
+          httpGet:
+            path: /healthz
+            port: http
+          periodSeconds: 2
+        volumeMounts:
+        - mountPath: /run/secrets/app
+          name: secrets
+          readOnly: true
+        - mountPath: /tmp
+          name: tmp
+      securityContext:
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: commerce-app
+      volumes:
+      - csi:
+          driver: secrets-store.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: app-secrets
+        name: secrets
+      - emptyDir: {}
+        name: tmp
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: app
+    app.kubernetes.io/name: mcp
+    app.kubernetes.io/part-of: commerce-ai-ops
+  name: mcp
+  namespace: commerce
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mcp
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: mcp
+        azure.workload.identity/use: "true"
+        commerce.io/data-access: "true"
+    spec:
+      containers:
+      - env:
+        - name: MCP_HOST
+          value: 0.0.0.0
+        - name: MCP_PORT
+          value: "3003"
+        envFrom:
+        - configMapRef:
+            name: app-config
+        image: commerceopsacr.azurecr.io/commerce-ai-ops/mcp:GIT-SHA
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+          periodSeconds: 10
+        name: mcp
+        ports:
+        - containerPort: 3003
+          name: http
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: http
+          periodSeconds: 5
+        resources:
+          limits:
+            cpu: 500m
+            memory: 384Mi
+          requests:
+            cpu: 50m
+            memory: 128Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+        startupProbe:
+          failureThreshold: 30
+          httpGet:
+            path: /healthz
+            port: http
+          periodSeconds: 2
+        volumeMounts:
+        - mountPath: /run/secrets/app
+          name: secrets
+          readOnly: true
+        - mountPath: /tmp
+          name: tmp
+      securityContext:
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: commerce-app
+      volumes:
+      - csi:
+          driver: secrets-store.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: app-secrets
+        name: secrets
+      - emptyDir: {}
+        name: tmp
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: app
+    app.kubernetes.io/name: web
+    app.kubernetes.io/part-of: commerce-ai-ops
+  name: web
+  namespace: commerce
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: web
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: web
+        azure.workload.identity/use: "true"
+    spec:
+      containers:
+      - env:
+        - name: NODE_ENV
+          value: production
+        - name: API_BASE_URL
+          value: http://api:3001
+        - name: AUTH_ISSUER
+          valueFrom:
+            configMapKeyRef:
+              key: AUTH_ISSUER
+              name: app-config
+        - name: AUTH_SIGNING_KEY_FILE
+          value: /run/secrets/app/issuer-private.jwk.json
+        image: commerceopsacr.azurecr.io/commerce-ai-ops/web:GIT-SHA
+        livenessProbe:
+          httpGet:
+            path: /login
+            port: http
+          periodSeconds: 10
+        name: web
+        ports:
+        - containerPort: 3000
+          name: http
+        readinessProbe:
+          httpGet:
+            path: /login
+            port: http
+          periodSeconds: 5
+        resources:
+          limits:
+            cpu: "1"
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+        startupProbe:
+          failureThreshold: 30
+          httpGet:
+            path: /login
+            port: http
+          periodSeconds: 2
+        volumeMounts:
+        - mountPath: /run/secrets/app
+          name: secrets
+          readOnly: true
+        - mountPath: /tmp
+          name: tmp
+        - mountPath: /repo/apps/web/.next/cache
+          name: next-cache
+      securityContext:
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: commerce-app
+      volumes:
+      - csi:
+          driver: secrets-store.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: web-secrets
+        name: secrets
+      - emptyDir: {}
+        name: tmp
+      - emptyDir: {}
+        name: next-cache
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/component: app
+    app.kubernetes.io/name: worker
+    app.kubernetes.io/part-of: commerce-ai-ops
+  name: worker
+  namespace: commerce
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: worker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: worker
+        azure.workload.identity/use: "true"
+        commerce.io/data-access: "true"
+    spec:
+      containers:
+      - env:
+        - name: WORKER_HOST
+          value: 0.0.0.0
+        - name: WORKER_HEALTH_PORT
+          value: "3002"
+        envFrom:
+        - configMapRef:
+            name: app-config
+        image: commerceopsacr.azurecr.io/commerce-ai-ops/worker:GIT-SHA
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: health
+          periodSeconds: 10
+        name: worker
+        ports:
+        - containerPort: 3002
+          name: health
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: health
+          periodSeconds: 5
+        resources:
+          limits:
+            cpu: "1"
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+        startupProbe:
+          failureThreshold: 30
+          httpGet:
+            path: /healthz
+            port: health
+          periodSeconds: 2
+        volumeMounts:
+        - mountPath: /run/secrets/app
+          name: secrets
+          readOnly: true
+        - mountPath: /tmp
+          name: tmp
+      securityContext:
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: commerce-app
+      terminationGracePeriodSeconds: 60
+      volumes:
+      - csi:
+          driver: secrets-store.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: app-secrets
+        name: secrets
+      - emptyDir: {}
+        name: tmp
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  labels:
+    app.kubernetes.io/component: app
+    app.kubernetes.io/part-of: commerce-ai-ops
+  name: api
+  namespace: commerce
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: api
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  labels:
+    app.kubernetes.io/component: app
+    app.kubernetes.io/part-of: commerce-ai-ops
+  name: web
+  namespace: commerce
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: web
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  labels:
+    app.kubernetes.io/component: app
+    app.kubernetes.io/part-of: commerce-ai-ops
+  name: api
+  namespace: commerce
+spec:
+  maxReplicas: 4
+  metrics:
+  - resource:
+      name: cpu
+      target:
+        averageUtilization: 70
+        type: Utilization
+    type: Resource
+  minReplicas: 2
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: api
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  labels:
+    app.kubernetes.io/component: app
+    app.kubernetes.io/part-of: commerce-ai-ops
+  name: web
+  namespace: commerce
+spec:
+  maxReplicas: 4
+  metrics:
+  - resource:
+      name: cpu
+      target:
+        averageUtilization: 70
+        type: Utilization
+    type: Resource
+  minReplicas: 2
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: web
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  labels:
+    app.kubernetes.io/component: app
+    app.kubernetes.io/part-of: commerce-ai-ops
+  name: worker
+  namespace: commerce
+spec:
+  maxReplicas: 3
+  metrics:
+  - resource:
+      name: cpu
+      target:
+        averageUtilization: 75
+        type: Utilization
+    type: Resource
+  minReplicas: 1
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: worker
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  labels:
+    app.kubernetes.io/component: migrate
+    app.kubernetes.io/name: migrate
+    app.kubernetes.io/part-of: commerce-ai-ops
+  name: migrate
+  namespace: commerce
+spec:
+  activeDeadlineSeconds: 600
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: migrate
+        azure.workload.identity/use: "true"
+        commerce.io/data-access: "true"
+    spec:
+      containers:
+      - env:
+        - name: DATABASE_ADMIN_URL_FILE
+          value: /run/secrets/app/database_admin_url
+        - name: DATABASE_MIGRATOR_URL_FILE
+          value: /run/secrets/app/database_migrator_url
+        - name: DATABASE_URL_FILE
+          value: /run/secrets/app/database_url
+        - name: PII_ENCRYPTION_KEY_FILE
+          value: /run/secrets/app/pii_key
+        image: commerceopsacr.azurecr.io/commerce-ai-ops/migrate:GIT-SHA
+        name: migrate
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+        volumeMounts:
+        - mountPath: /run/secrets/app
+          name: secrets
+          readOnly: true
+        - mountPath: /tmp
+          name: tmp
+      restartPolicy: Never
+      securityContext:
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: commerce-app
+      volumes:
+      - csi:
+          driver: secrets-store.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: migrate-secrets
+        name: secrets
+      - emptyDir: {}
+        name: tmp
+  ttlSecondsAfterFinished: 86400
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    kubernetes.azure.com/tls-cert-keyvault-uri: https://commerceops-kv-demo.vault.azure.net/certificates/edge-tls
+  labels:
+    app.kubernetes.io/component: app
+    app.kubernetes.io/part-of: commerce-ai-ops
+  name: edge
+  namespace: commerce
+spec:
+  ingressClassName: webapprouting.kubernetes.azure.com
+  rules:
+  - host: commerce.example.com
+    http:
+      paths:
+      - backend:
+          service:
+            name: api
+            port:
+              name: http
+        path: /v1
+        pathType: Prefix
+      - backend:
+          service:
+            name: api
+            port:
+              name: http
+        path: /healthz
+        pathType: Exact
+      - backend:
+          service:
+            name: web
+            port:
+              name: http
+        path: /
+        pathType: Prefix
+  tls:
+  - hosts:
+    - commerce.example.com
+    secretName: edge-tls
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  labels:
+    app.kubernetes.io/component: platform
+    app.kubernetes.io/part-of: commerce-ai-ops
+  name: allow-dns-and-namespace-egress
+  namespace: commerce
+spec:
+  egress:
+  - ports:
+    - port: 53
+      protocol: UDP
+    - port: 53
+      protocol: TCP
+    to:
+    - namespaceSelector: {}
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+  - to:
+    - podSelector: {}
+  podSelector: {}
+  policyTypes:
+  - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  labels:
+    app.kubernetes.io/component: platform
+  name: data-access-egress
+  namespace: commerce
+spec:
+  egress:
+  - ports:
+    - port: 5432
+      protocol: TCP
+    - port: 6380
+      protocol: TCP
+    to:
+    - ipBlock:
+        cidr: 10.42.16.0/23
+  podSelector:
+    matchLabels:
+      commerce.io/data-access: "true"
+  policyTypes:
+  - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  labels:
+    app.kubernetes.io/component: platform
+    app.kubernetes.io/part-of: commerce-ai-ops
+  name: default-deny
+  namespace: commerce
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  labels:
+    app.kubernetes.io/component: platform
+    app.kubernetes.io/part-of: commerce-ai-ops
+  name: edge-to-api-and-web
+  namespace: commerce
+spec:
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: app-routing-system
+    ports:
+    - port: 3000
+      protocol: TCP
+    - port: 3001
+      protocol: TCP
+  podSelector:
+    matchExpressions:
+    - key: app.kubernetes.io/name
+      operator: In
+      values:
+      - api
+      - web
+  policyTypes:
+  - Ingress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  labels:
+    app.kubernetes.io/component: platform
+    app.kubernetes.io/part-of: commerce-ai-ops
+  name: mcp-clients
+  namespace: commerce
+spec:
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          commerce.io/mcp-client: "true"
+    ports:
+    - port: 3003
+      protocol: TCP
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: mcp
+  policyTypes:
+  - Ingress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  labels:
+    app.kubernetes.io/component: platform
+    app.kubernetes.io/part-of: commerce-ai-ops
+  name: web-to-api
+  namespace: commerce
+spec:
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: web
+    ports:
+    - port: 3001
+      protocol: TCP
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: api
+  policyTypes:
+  - Ingress
+---
+apiVersion: secrets-store.csi.x-k8s.io/v1
+kind: SecretProviderClass
+metadata:
+  labels:
+    app.kubernetes.io/component: platform
+  name: app-secrets
+  namespace: commerce
+spec:
+  parameters:
+    clientID: 00000000-0000-0000-0000-000000000000
+    keyvaultName: commerceops-kv-demo
+    objects: |
+      array:
+        - |
+          objectName: database-url
+          objectType: secret
+          objectAlias: database_url
+        - |
+          objectName: redis-url
+          objectType: secret
+          objectAlias: redis_url
+        - |
+          objectName: pii-key
+          objectType: secret
+          objectAlias: pii_key
+        - |
+          objectName: jwks
+          objectType: secret
+          objectAlias: jwks.json
+    tenantId: 00000000-0000-0000-0000-000000000000
+    usePodIdentity: "false"
+  provider: azure
+---
+apiVersion: secrets-store.csi.x-k8s.io/v1
+kind: SecretProviderClass
+metadata:
+  labels:
+    app.kubernetes.io/component: migrate
+  name: migrate-secrets
+  namespace: commerce
+spec:
+  parameters:
+    clientID: 00000000-0000-0000-0000-000000000000
+    keyvaultName: commerceops-kv-demo
+    objects: |
+      array:
+        - |
+          objectName: database-admin-url
+          objectType: secret
+          objectAlias: database_admin_url
+        - |
+          objectName: database-migrator-url
+          objectType: secret
+          objectAlias: database_migrator_url
+        - |
+          objectName: database-url
+          objectType: secret
+          objectAlias: database_url
+        - |
+          objectName: pii-key
+          objectType: secret
+          objectAlias: pii_key
+    tenantId: 00000000-0000-0000-0000-000000000000
+    usePodIdentity: "false"
+  provider: azure
+---
+apiVersion: secrets-store.csi.x-k8s.io/v1
+kind: SecretProviderClass
+metadata:
+  labels:
+    app.kubernetes.io/component: platform
+  name: web-secrets
+  namespace: commerce
+spec:
+  parameters:
+    clientID: 00000000-0000-0000-0000-000000000000
+    keyvaultName: commerceops-kv-demo
+    objects: |
+      array:
+        - |
+          objectName: issuer-private-jwk
+          objectType: secret
+          objectAlias: issuer-private.jwk.json
+    tenantId: 00000000-0000-0000-0000-000000000000
+    usePodIdentity: "false"
+  provider: azure

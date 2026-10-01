@@ -232,8 +232,8 @@ try {
 }
 
 const path = await writeRunReport({
-  suite: 'm11-demo',
-  description: `compose.prod.yaml behind Caddy TLS at ${base}; deterministic template provider (no LLM)`,
+  suite: process.env.K8S_CONTAINER ? 'm11-demo-k8s' : 'm11-demo',
+  description: `${process.env.K8S_CONTAINER ? 'k8s overlays/local (k3s) behind Traefik ingress TLS' : 'compose.prod.yaml behind Caddy TLS'} at ${base}; deterministic template provider (no LLM)`,
   startedAt,
   checks,
   timings,

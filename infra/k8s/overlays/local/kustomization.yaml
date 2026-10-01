@@ -1,0 +1,33 @@
+# Local validation cluster (k3s in Docker, infra/scripts/k8s-local.mjs). Stands in for the managed
+# services with in-cluster PostgreSQL (pgvector) and Redis reachable only by data-access pods.
+# The Secrets commerce-app-secrets and edge-tls are created by the script from .local/prod and a
+# throwaway local CA; they are never part of these files.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: commerce
+resources:
+  - ../../base
+  - data.yaml
+patches:
+  - target: { kind: Ingress, name: edge }
+    patch: |-
+      - op: replace
+        path: /spec/ingressClassName
+        value: traefik
+      - op: replace
+        path: /spec/tls/0/hosts/0
+        value: localhost
+      - op: replace
+        path: /spec/rules/0/host
+        value: localhost
+  - target: { kind: NetworkPolicy, name: edge-to-api-and-web }
+    patch: |-
+      - op: replace
+        path: /spec/ingress/0/from/0/namespaceSelector/matchLabels/kubernetes.io~1metadata.name
+        value: kube-system
+  # A demo-sized footprint: one replica each (HPAs keep min 1 here).
+  - target: { kind: HorizontalPodAutoscaler }
+    patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 1

@@ -1,0 +1,26 @@
+# Same routing as infra/docker/Caddyfile: /v1/* and /healthz to the API, everything else to the
+# console; MCP and the worker are never routed. Overlays set the class, host and certificate.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: edge
+  labels:
+    app.kubernetes.io/component: app
+spec:
+  ingressClassName: CHANGE-ME
+  tls:
+    - hosts: [commerce.example.com]
+      secretName: edge-tls
+  rules:
+    - host: commerce.example.com
+      http:
+        paths:
+          - path: /v1
+            pathType: Prefix
+            backend: { service: { name: api, port: { name: http } } }
+          - path: /healthz
+            pathType: Exact
+            backend: { service: { name: api, port: { name: http } } }
+          - path: /
+            pathType: Prefix
+            backend: { service: { name: web, port: { name: http } } }

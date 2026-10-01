@@ -22,7 +22,7 @@ M0 a M3 completados (2026-09-29) y M4–M10 (2026-10-01). M10 se cerró con exce
 | M8 Human approval (`add-human-approval`, completado) | M5, M7 | ActionRequest/Approval, separación de funciones, consumo atómico | Replay/expiry/payload/version/restart/revocation probados; autorización al commit |
 | M9 React/Next.js UI (`add-operations-console`, completado) | M2–M8 | Consola operacional, streaming, citas y bandeja de aprobación | E2E por rol; loading/error/empty/degraded; teclado; reconexión; simulaciones visibles |
 | M10 Evals (`add-evaluation-gates`, completado con excepciones aceptadas) | Harness desde M0; M4–M9 | Dataset 300, holdout, gates calidad/seguridad/carga y dashboard | Reporte reproducible de diez métricas; todos los gates y limitaciones publicadas |
-| M11 Deployment/demo (`add-cloud-deployment-demo`, local production-like; cloud pendiente) | M10 | Contenedores/cloud, CI deploy, secretos, runbook, backup/restore y demo | Smoke con 3 casos, rollback y restart; restauración ensayada; costo/latencia etiquetados |
+| M11 Deployment/demo (`add-cloud-deployment-demo`, completado: listo para AKS, despliegue real pendiente de autorización) | M10 | Contenedores/cloud, CI deploy, secretos, runbook, backup/restore y demo | Smoke con 3 casos, rollback y restart; restauración ensayada; costo/latencia etiquetados |
 
 M5 publica update_order con ejecución bloqueada mientras no exista aprobación verificable. M7 puede producir propuestas, no saltarse M8. El scaffold visual de M0 no equivale a la consola de M9. Observabilidad y tests acompañan cada milestone; M10 integra evidencia, no inaugura la calidad.
 

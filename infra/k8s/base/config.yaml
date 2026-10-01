@@ -1,0 +1,18 @@
+# Non-secret configuration. Secrets are files under /run/secrets/app (a Kubernetes Secret locally,
+# the Key Vault CSI driver on AKS); the image entrypoint turns each *_FILE into a process variable.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  labels:
+    app.kubernetes.io/component: platform
+data:
+  NODE_ENV: production
+  LOG_LEVEL: info
+  AUTH_ISSUER: http://127.0.0.1:3000/local-issuer
+  AUTH_JWKS_FILE: /run/secrets/app/jwks.json
+  DATABASE_URL_FILE: /run/secrets/app/database_url
+  REDIS_URL_FILE: /run/secrets/app/redis_url
+  PII_ENCRYPTION_KEY_FILE: /run/secrets/app/pii_key
+  RUN_EXECUTION: queue
+  EMBEDDINGS_CACHE_DIR: /tmp/embeddings

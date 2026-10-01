@@ -1,6 +1,6 @@
 # Isolated restore rehearsal (M11): a throwaway PostgreSQL with no published port and no route to
 # the production-like stack. infra/scripts/recovery-drill.mjs restores a pg_dump of the prod-like
-# stack here, verifies it and removes it. Cloud restore (RDS snapshot) is not provisioned.
+# stack here, verifies it and removes it. Managed restore (Azure Flexible Server point-in-time restore) is not provisioned.
 name: commerce-ai-ops-restore
 
 services:

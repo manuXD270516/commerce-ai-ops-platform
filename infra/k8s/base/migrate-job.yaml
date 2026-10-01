@@ -1,0 +1,62 @@
+# One-shot, per release: forward-only migrations with the migrator role, then the synthetic seed
+# only into an empty database (`seed --if-empty`): re-running the job never resets data.
+# Delete the previous job before applying (Job specs are immutable), wait for completion, then
+# roll the apps.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migrate
+  labels:
+    app.kubernetes.io/name: migrate
+    app.kubernetes.io/component: migrate
+spec:
+  backoffLimit: 2
+  activeDeadlineSeconds: 600
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: migrate
+        commerce.io/data-access: 'true'
+    spec:
+      restartPolicy: Never
+      serviceAccountName: commerce-app
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: migrate
+          image: commerce-ai-ops/migrate:local
+          env:
+            - name: DATABASE_ADMIN_URL_FILE
+              value: /run/secrets/app/database_admin_url
+            - name: DATABASE_MIGRATOR_URL_FILE
+              value: /run/secrets/app/database_migrator_url
+            - name: DATABASE_URL_FILE
+              value: /run/secrets/app/database_url
+            - name: PII_ENCRYPTION_KEY_FILE
+              value: /run/secrets/app/pii_key
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { cpu: 500m, memory: 512Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          volumeMounts:
+            - { name: secrets, mountPath: /run/secrets/app, readOnly: true }
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - name: secrets
+          secret:
+            secretName: commerce-app-secrets
+            items:
+              - { key: database_admin_url, path: database_admin_url }
+              - { key: database_migrator_url, path: database_migrator_url }
+              - { key: database_url, path: database_url }
+              - { key: pii_key, path: pii_key }
+        - name: tmp
+          emptyDir: {}

@@ -14,6 +14,22 @@ const app = await NestFactory.create<NestExpressApplication>(AppModule.forRoot(c
   logger: new NestPinoLogger(logger),
 });
 app.disable('x-powered-by');
+// Same baseline headers whatever edge is in front (Caddy locally, an ingress controller on AKS).
+app.use(
+  (
+    req: { headers: Record<string, string | string[] | undefined> },
+    res: { setHeader(name: string, value: string): void },
+    next: () => void,
+  ) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('Referrer-Policy', 'no-referrer');
+    if (req.headers['x-forwarded-proto'] === 'https') {
+      res.setHeader('Strict-Transport-Security', 'max-age=31536000');
+    }
+    next();
+  },
+);
 app.use(httpLogging(logger));
 app.enableShutdownHooks();
 

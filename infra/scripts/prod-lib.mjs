@@ -121,28 +121,31 @@ export async function readEvents(subject, runId, until, { lastEventId, timeoutMs
   }
 }
 
-/** psql inside the private data network (the database has no published port). */
+/**
+ * psql inside the private data network (the database has no published port): through Compose, or
+ * through kubectl in the local k3s cluster when K8S_CONTAINER is set (infra/scripts/k8s-local.mjs).
+ */
 export function psql(
   sql,
   { project = COMPOSE, service = 'postgres', user = 'commerce_admin' } = {},
 ) {
+  const target = process.env.K8S_CONTAINER
+    ? [
+        'exec',
+        '-i',
+        process.env.K8S_CONTAINER,
+        'kubectl',
+        '-n',
+        'commerce',
+        'exec',
+        '-i',
+        'postgres-0',
+        '--',
+      ]
+    : [...project, 'exec', '-T', service];
   return execFileSync(
     'docker',
-    [
-      ...project,
-      'exec',
-      '-T',
-      service,
-      'psql',
-      '-v',
-      'ON_ERROR_STOP=1',
-      '-U',
-      user,
-      '-d',
-      'commerce',
-      '-tAc',
-      sql,
-    ],
+    [...target, 'psql', '-v', 'ON_ERROR_STOP=1', '-U', user, '-d', 'commerce', '-tAc', sql],
     { encoding: 'utf8' },
   ).trim();
 }

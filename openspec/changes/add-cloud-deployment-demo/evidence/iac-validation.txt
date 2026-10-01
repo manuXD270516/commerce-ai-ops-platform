@@ -1,0 +1,9 @@
+$ docker run hashicorp/terraform:1.9.8 fmt -check -diff
+exit 0
+$ docker run hashicorp/terraform:1.9.8 validate -no-color  (after init -backend=false; azurerm 4.81.0, random 3.9.1)
+Success! The configuration is valid.
+
+exit 0
+$ kubectl kustomize overlays/{local,aks} | kubeconform -strict -summary -kubernetes-version 1.33.0 (+ datreeio CRD catalog)
+Summary: 53 resources found in 2 files - Valid: 53, Invalid: 0, Errors: 0, Skipped: 0
+exit 0

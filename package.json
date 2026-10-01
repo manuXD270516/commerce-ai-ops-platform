@@ -38,7 +38,8 @@
     "prod:up": "docker compose -f infra/compose.prod.yaml up -d --build --wait",
     "prod:down": "docker compose -f infra/compose.prod.yaml down",
     "prod:demo": "node infra/scripts/demo.mjs",
-    "prod:drill": "node infra/scripts/recovery-drill.mjs"
+    "prod:drill": "node infra/scripts/recovery-drill.mjs",
+    "k8s:local": "node infra/scripts/k8s-local.mjs"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

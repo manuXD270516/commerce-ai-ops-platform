@@ -1,0 +1,11 @@
+# Copy to terraform.tfvars (git-ignored values) and replace every placeholder. Nothing here is a
+# real identifier. Applying creates billable resources: owner authorization required.
+subscription_id     = "00000000-0000-0000-0000-000000000000"
+location            = "<azure-region>"   # e.g. a region with AKS, PostgreSQL Flexible Server 17 and Redis
+environment         = "demo"
+name_prefix         = "commerceops"      # globally unique, 3-12 lowercase letters/digits
+github_repository   = "<owner>/commerce-ai-ops-platform"
+github_environment  = "aks-demo"
+monthly_budget      = 100                # subscription currency; alert at 80 % forecast
+budget_alert_emails = ["<owner-email>"]
+budget_start_date   = "2026-11-01T00:00:00Z"

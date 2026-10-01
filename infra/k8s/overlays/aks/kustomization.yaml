@@ -1,0 +1,130 @@
+# AKS target (deployment-ready, never applied). Provider values come from params.env; images are
+# set per release by .github/workflows/deploy.yml (ACR, immutable git SHA tags).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: commerce
+resources:
+  - ../../base
+  - secretproviderclasses.yaml
+  - data-egress.yaml
+
+images:
+  - {
+      name: commerce-ai-ops/api,
+      newName: commerceopsacr.azurecr.io/commerce-ai-ops/api,
+      newTag: GIT-SHA,
+    }
+  - {
+      name: commerce-ai-ops/worker,
+      newName: commerceopsacr.azurecr.io/commerce-ai-ops/worker,
+      newTag: GIT-SHA,
+    }
+  - {
+      name: commerce-ai-ops/mcp,
+      newName: commerceopsacr.azurecr.io/commerce-ai-ops/mcp,
+      newTag: GIT-SHA,
+    }
+  - {
+      name: commerce-ai-ops/web,
+      newName: commerceopsacr.azurecr.io/commerce-ai-ops/web,
+      newTag: GIT-SHA,
+    }
+  - {
+      name: commerce-ai-ops/migrate,
+      newName: commerceopsacr.azurecr.io/commerce-ai-ops/migrate,
+      newTag: GIT-SHA,
+    }
+
+configMapGenerator:
+  - name: aks-params
+    envs: [params.env]
+    options:
+      annotations:
+        config.kubernetes.io/local-config: 'true'
+
+replacements:
+  - source: { kind: ConfigMap, name: aks-params, fieldPath: data.KEY_VAULT_NAME }
+    targets:
+      - select: { kind: SecretProviderClass }
+        fieldPaths: [spec.parameters.keyvaultName]
+  - source: { kind: ConfigMap, name: aks-params, fieldPath: data.AZURE_TENANT_ID }
+    targets:
+      - select: { kind: SecretProviderClass }
+        fieldPaths: [spec.parameters.tenantId]
+  - source: { kind: ConfigMap, name: aks-params, fieldPath: data.AZURE_WORKLOAD_CLIENT_ID }
+    targets:
+      - select: { kind: SecretProviderClass }
+        fieldPaths: [spec.parameters.clientID]
+      - select: { kind: ServiceAccount, name: commerce-app }
+        fieldPaths:
+          - metadata.annotations.[azure.workload.identity/client-id]
+        options: { create: true }
+  - source: { kind: ConfigMap, name: aks-params, fieldPath: data.PUBLIC_HOST }
+    targets:
+      - select: { kind: Ingress, name: edge }
+        fieldPaths: [spec.tls.0.hosts.0, spec.rules.0.host]
+  - source: { kind: ConfigMap, name: aks-params, fieldPath: data.TLS_CERT_KEYVAULT_URI }
+    targets:
+      - select: { kind: Ingress, name: edge }
+        fieldPaths:
+          - metadata.annotations.[kubernetes.azure.com/tls-cert-keyvault-uri]
+        options: { create: true }
+  - source: { kind: ConfigMap, name: aks-params, fieldPath: data.DATA_SUBNETS_CIDR }
+    targets:
+      - select: { kind: NetworkPolicy, name: data-access-egress }
+        fieldPaths: [spec.egress.0.to.0.ipBlock.cidr]
+
+patches:
+  # Managed NGINX of the app-routing add-on; it syncs the Key Vault certificate into edge-tls.
+  - target: { kind: Ingress, name: edge }
+    patch: |-
+      - op: replace
+        path: /spec/ingressClassName
+        value: webapprouting.kubernetes.azure.com
+  - target: { kind: NetworkPolicy, name: edge-to-api-and-web }
+    patch: |-
+      - op: replace
+        path: /spec/ingress/0/from/0/namespaceSelector/matchLabels/kubernetes.io~1metadata.name
+        value: app-routing-system
+  # Workload identity for every pod that mounts Key Vault secrets.
+  - target: { kind: Deployment }
+    patch: |-
+      - op: add
+        path: /spec/template/metadata/labels/azure.workload.identity~1use
+        value: 'true'
+  - target: { kind: Job, name: migrate }
+    patch: |-
+      - op: add
+        path: /spec/template/metadata/labels/azure.workload.identity~1use
+        value: 'true'
+  # Secrets come from Key Vault through the CSI driver instead of a Kubernetes Secret.
+  - target: { kind: Deployment, name: 'api|worker|mcp' }
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/volumes/0
+        value:
+          name: secrets
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes: { secretProviderClass: app-secrets }
+  - target: { kind: Deployment, name: web }
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/volumes/0
+        value:
+          name: secrets
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes: { secretProviderClass: web-secrets }
+  - target: { kind: Job, name: migrate }
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/volumes/0
+        value:
+          name: secrets
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes: { secretProviderClass: migrate-secrets }

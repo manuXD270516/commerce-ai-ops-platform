@@ -1,6 +1,6 @@
 # Runbook
 
-Operación del MVP en el entorno **production-like local** (`infra/compose.prod.yaml`) y plan para la demo cloud. Todo lo marcado como observado salió de los scripts del repo en una sola estación de trabajo (Windows 11 + Docker Desktop); son observaciones puntuales, **no SLA**. La demo cloud no está desplegada: ver [§ Cloud](#cloud-pendiente-de-autorización).
+Operación del MVP en el entorno **production-like local** (`infra/compose.prod.yaml`) y plan para la demo cloud. Todo lo marcado como observado salió de los scripts del repo en una sola estación de trabajo (Windows 11 + Docker Desktop); son observaciones puntuales, **no SLA**. El destino cloud es AKS, **listo para desplegar pero no desplegado**: ver [§ AKS](#aks-listo-para-desplegar-pendiente-de-autorización).
 
 ## 1. Topología production-like
 
@@ -40,7 +40,7 @@ Forward-only (`packages/domain/migrations/NNNN_*.sql`), aplicadas por el job `mi
 
 ## 4. Rollback
 
-Redeploy del tag anterior (inmutable): `IMAGE_TAG=<tag-anterior> docker compose -f infra/compose.prod.yaml up -d --no-build --wait api worker web mcp`. El healthcheck (`--wait`) es el gate: un release que no llega a ready no se da por desplegado. En cloud, ECS hace lo mismo con el deployment circuit breaker (`rollback = true`). Ensayo: `pnpm prod:drill rollback` despliega una imagen de API rota a propósito, verifica que el gate la rechaza y vuelve al tag bueno.
+Redeploy del tag anterior (inmutable): `IMAGE_TAG=<tag-anterior> docker compose -f infra/compose.prod.yaml up -d --no-build --wait api worker web mcp`. El healthcheck (`--wait`) es el gate: un release que no llega a ready no se da por desplegado. En Kubernetes, `maxUnavailable: 0` mantiene los pods anteriores mientras un release no pasa readiness y `kubectl -n commerce rollout undo deployment/<app>` vuelve a la revisión previa (el workflow de AKS lo hace solo si un rollout falla; ensayado en `pnpm k8s:local`). Ensayo: `pnpm prod:drill rollback` despliega una imagen de API rota a propósito, verifica que el gate la rechaza y vuelve al tag bueno.
 
 ## 5. Pérdida de Redis
 
@@ -54,11 +54,11 @@ Ensayo: `pnpm prod:drill redis`.
 
 ## 6. Backup y restore
 
-Backup lógico: `docker compose -f infra/compose.prod.yaml exec -T postgres pg_dump -U commerce_admin -Fc commerce > backup.dump`. Para un snapshot comparable se pausa el worker (único escritor en segundo plano). El ensayo `pnpm prod:drill restore` lo automatiza: dump, restore en un PostgreSQL aislado (`infra/restore-compose.yaml`, red interna, sin puerto publicado), creación previa de los roles de la app como `NOLOGIN`, y verificación de conteos por tabla, estado de runs, último evento de auditoría, FKs validadas sin huérfanos, políticas RLS y migraciones aplicadas. El dump queda en `.local/prod/backups/` con su `*.verify.json`. En cloud el equivalente es snapshot de RDS + restore a instancia aislada (no ensayado).
+Backup lógico: `docker compose -f infra/compose.prod.yaml exec -T postgres pg_dump -U commerce_admin -Fc commerce > backup.dump`. Para un snapshot comparable se pausa el worker (único escritor en segundo plano). El ensayo `pnpm prod:drill restore` lo automatiza: dump, restore en un PostgreSQL aislado (`infra/restore-compose.yaml`, red interna, sin puerto publicado), creación previa de los roles de la app como `NOLOGIN`, y verificación de conteos por tabla, estado de runs, último evento de auditoría, FKs validadas sin huérfanos, políticas RLS y migraciones aplicadas. El dump queda en `.local/prod/backups/` con su `*.verify.json`. En Azure el equivalente es el point-in-time restore de Flexible Server (backups de 7 días) a un servidor aislado (no ensayado).
 
 ## 7. Retención
 
-`pnpm db:retention` (o `node dist/cli.js retention` en la imagen `migrate`) ejecuta `commerce.apply_retention(now())`: borra estado de runs > 30 días y el texto libre del usuario, consentimientos e idempotencia > 30 días; requests/aprobaciones/ejecuciones/auditoría decididas > 90 días. Programarlo diario (cron del host o tarea programada de ECS); no está programado en el stack local.
+`pnpm db:retention` (o `node dist/cli.js retention` en la imagen `migrate`) ejecuta `commerce.apply_retention(now())`: borra estado de runs > 30 días y el texto libre del usuario, consentimientos e idempotencia > 30 días; requests/aprobaciones/ejecuciones/auditoría decididas > 90 días. Programarlo diario (cron del host o un CronJob de Kubernetes con la imagen `migrate`); no está programado en el stack local.
 
 ## 8. Calidad y carga
 
@@ -80,13 +80,59 @@ Backup lógico: `docker compose -f infra/compose.prod.yaml exec -T postgres pg_d
 | Rollback: detectar release rota / volver al tag anterior | 2,7 s / 4,7 s |
 | Backup (pg_dump, 187 KiB) / restore aislado completo | 0,46 s / 4,9 s |
 
-## Cloud (pendiente de autorización)
+## AKS (listo para desplegar, pendiente de autorización)
 
-`infra/terraform/aws` describe la topología de [architecture.md §5](architecture.md): VPC con subredes privadas, ECS Fargate (api, worker, mcp, web), RDS PostgreSQL 17 con pgvector, ElastiCache sin snapshots, Secrets Manager, ECR inmutable, ALB con TLS 1.3 y el mismo ruteo que el Caddyfile, budget con alerta al 80 %. `.github/workflows/deploy.yml` (sólo `workflow_dispatch`, OIDC sin claves guardadas) queda inerte hasta `DEPLOY_ENABLED=true`.
+Decisión del dueño del repo (2026-10-01): el destino es Azure Kubernetes Service, con alcance "listo para desplegar". Nada se aplicó en Azure; aplicar es un paso futuro que requiere autorización explícita.
 
-**Estado: no aplicado, no validado con `terraform validate` (Terraform no está instalado en esta máquina) y nunca ejecutado.** Antes de aplicar hace falta decisión del dueño del repo sobre:
+### Artefactos
 
-1. Región (con RDS PostgreSQL 17 + pgvector ≥ 0.8, Fargate y ElastiCache) y cuenta.
-2. Presupuesto mensual y destinatarios de alertas; la topología propuesta (NAT, ALB, RDS, ElastiCache) **no es gratuita**. Si se exige costo cero, hace falta otro host.
-3. Proveedor OIDC/rol IAM para GitHub Actions (hoy bloqueado por billing) y certificado ACM/dominio.
-4. Emisor de identidad real: el sign-in de demo de la consola no es un IdP de producción.
+| Ruta | Contenido |
+|---|---|
+| `infra/terraform/azure` | `azurerm` 4.x: resource group, VNet con subred AKS, subred delegada para PostgreSQL y subred de private endpoints; AKS (Azure CNI overlay + Cilium, OIDC issuer, workload identity, driver Key Vault CSI, add-on app-routing, Entra ID + Azure RBAC, cuentas locales deshabilitadas); ACR (AcrPull al kubelet); PostgreSQL Flexible Server sin acceso público con `azure.extensions=VECTOR,PGCRYPTO`; Azure Cache for Redis sólo TLS con private endpoint; Key Vault RBAC con los secretos generados; identidad de la app federada con `system:serviceaccount:commerce:commerce-app`; identidad de despliegue federada con GitHub (`repo:<owner>/<repo>:environment:aks-demo`, AcrPush + RBAC Writer sólo en el namespace); budget al 80 % previsto. `terraform.tfvars.example` con placeholders. |
+| `infra/k8s/base` | Namespace (PSA baseline, warn restricted), ServiceAccount, ConfigMap, Job `migrate` (`migrate` + `seed --if-empty`), Deployments api/worker/mcp/web con startup/liveness/readiness, requests/limits, raíz de sólo lectura, HPA (api/web 2–4, worker 1–3), PDB, Services, Ingress (`/v1` y `/healthz` a la API, el resto a la consola) y NetworkPolicies (deny por defecto, sólo el ingress entra, sólo pods `data-access` salen a los datos). |
+| `infra/k8s/overlays/aks` | `params.env` (placeholders), tres `SecretProviderClass` (app, web, migrate) con workload identity, volúmenes CSI, clase `webapprouting.kubernetes.azure.com` con certificado de Key Vault, egress a las subredes de datos, imágenes de ACR. |
+| `infra/k8s/overlays/local` | PostgreSQL (pgvector) y Redis en el cluster, sólo accesibles por pods `data-access`; Traefik de k3s. Lo usa `pnpm k8s:local`. |
+| `.github/workflows/deploy.yml` | `workflow_dispatch` con un SHA de 40 caracteres; login OIDC sin secretos; build/push a ACR con tags SHA inmutables (no reescribe un tag existente); overlay de release; Job de migración y espera; rollout con `rollout undo` si falla; smoke por el ingress. Inerte sin `DEPLOY_ENABLED=true`. Nunca se ejecutó. |
+
+### Prerrequisitos que provee el dueño
+
+1. Suscripción de Azure y región con AKS, PostgreSQL Flexible Server 17 (pgvector) y Azure Cache for Redis.
+2. Presupuesto mensual y destinatarios de alertas.
+3. Dominio y certificado TLS: un certificado en Key Vault (`TLS_CERT_KEYVAULT_URI`) y el registro DNS del host público hacia la IP del ingress de app-routing.
+4. GitHub: environment `aks-demo` con la credencial federada que crea Terraform, y variables `DEPLOY_ENABLED`, `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `AZURE_RESOURCE_GROUP`, `AZURE_AKS_NAME`, `AZURE_ACR_NAME`, `AZURE_KEY_VAULT_NAME`, `AZURE_WORKLOAD_CLIENT_ID`, `PUBLIC_HOST`, `TLS_CERT_KEYVAULT_URI`, `DATA_SUBNETS_CIDR`. GitHub Actions hoy está bloqueado por billing.
+5. Un emisor de identidad real para producción: el sign-in de demo de la consola no es un IdP.
+
+### Costo orientativo
+
+Hoy: 0 (nada aplicado). Con los valores por defecto la topología tiene costo mensual: 2 nodos `Standard_B2s`, PostgreSQL `B_Standard_B1ms` con 32 GiB, Redis Basic C0, ACR Basic, load balancer e IP pública del ingress, Key Vault y tráfico. Orden de magnitud estimado **USD 120–180/mes**, sin verificar contra la calculadora de precios de una región concreta; el control plane de AKS en tier Free no se cobra. El budget avisa al 80 % previsto. No es de costo cero.
+
+### Comandos para un despliegue futuro (sólo con autorización)
+
+```bash
+# 1. Infraestructura (state remoto protegido: contiene las URLs de la BD)
+cd infra/terraform/azure
+cp terraform.tfvars.example terraform.tfvars        # completar placeholders
+az login && terraform init -backend-config=backend.hcl
+terraform plan -out tfplan                          # revisar costo y recursos
+terraform apply tfplan
+
+# 2. Claves del emisor y certificado (la clave privada no entra al state)
+pnpm prod:secrets
+KV=$(terraform output -raw key_vault_name)
+az keyvault secret set --vault-name "$KV" --name jwks --file ../../../.local/prod/jwks.json
+az keyvault secret set --vault-name "$KV" --name issuer-private-jwk --file ../../../.local/prod/issuer-private.jwk.json
+az keyvault certificate import --vault-name "$KV" --name edge-tls --file <cert.pfx>
+
+# 3. Variables del environment aks-demo en GitHub desde `terraform output`; luego:
+gh workflow run deploy.yml -f ref=<commit-sha-completo>
+```
+
+Sin GitHub Actions, los pasos del workflow se pueden ejecutar a mano con `az`, `docker` y `kubectl` en el mismo orden: build/push, `kubectl kustomize` del overlay, `kubectl apply -l app.kubernetes.io/component=platform`, Job `migrate` y `kubectl wait`, `component=app` y `rollout status`.
+
+### Validación local hecha (sin costo)
+
+- `terraform fmt -check`, `terraform init -backend=false` y `terraform validate` con la imagen oficial `hashicorp/terraform:1.9.8` (azurerm 4.81.0): válido, 0 warnings.
+- `kubectl kustomize` de ambos overlays y `kubeconform -strict` (Kubernetes 1.33, esquemas de CRDs para `SecretProviderClass`): todos los recursos válidos.
+- `pnpm k8s:local`: overlay local en k3s dentro de Docker, demo completa por el ingress TLS, rollout roto contenido y revertido, Job de migración re-ejecutado sin perder datos. El cluster se borra al terminar.
+
+No se validó contra Azure real: driver CSI con Key Vault, app-routing, workload identity, Flexible Server (admin no superusuario) y private endpoints sólo se probarán al aplicar.

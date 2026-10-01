@@ -60,7 +60,12 @@ async function ensureRoles(urls: MigrateUrls): Promise<void> {
     await admin.query('CREATE EXTENSION IF NOT EXISTS pgcrypto');
     await upsertRole(admin, migrator);
     await upsertRole(admin, runtime);
-    await admin.query('ALTER ROLE commerce_runtime NOBYPASSRLS');
+    // Only when needed: managed services (Azure Flexible Server) give a non-superuser admin that
+    // cannot touch the BYPASSRLS attribute, and new roles already lack it.
+    const bypass = await admin.query<{ rolbypassrls: boolean }>(
+      "SELECT rolbypassrls FROM pg_roles WHERE rolname = 'commerce_runtime'",
+    );
+    if (bypass.rows[0]?.rolbypassrls) await admin.query('ALTER ROLE commerce_runtime NOBYPASSRLS');
     await admin.query('CREATE SCHEMA IF NOT EXISTS commerce AUTHORIZATION commerce_migrator');
     await admin.query('ALTER SCHEMA commerce OWNER TO commerce_migrator');
     const database = decodeURIComponent(new URL(urls.adminUrl).pathname.replace(/^\//, ''));
