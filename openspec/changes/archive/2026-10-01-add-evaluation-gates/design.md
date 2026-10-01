@@ -17,6 +17,13 @@ Objetivo: cumplir el gate de salida de M10: Reporte reproducible de diez métric
 7. **Trazas y auditoría.** Spans OpenTelemetry `agent.run` (run_id, worker) y `tool.call` (tool, tool_call_id, run_id, perfil, resultado) en el mismo trace; la auditoría de cada tool usa el mismo `tool_call_id` como recurso y `run-<id>` como correlation id. Los atributos llevan ids y resultados, nunca texto del usuario ni argumentos. `GET /v1/action-requests/:id/trail` (approver o admin) reconstruye una acción: solicitante, argumentos y hash, aprobador y decisión, política y versión, ejecución con su clave de idempotencia, auditoría con correlation ids y evento de dominio.
 8. **Dashboard y PII.** `pnpm evals` escribe `evals/reports/ops-dashboard-*.html|md` (resultado por workflow, tiempo activo, edad de outbox, denegaciones, latencia de aprobación, frescura logística y de corpus, alertas) y una auditoría `pii-audit` (emails, tarjetas, bearer tokens y claves en datos operativos, emails cifrados en `customers`, secretos en logs del último smoke). Retención: `commerce.apply_retention()` (migración `0009_retention.sql`, sólo el owner; `pnpm db:retention`) borra estado de runs a los 30 días y borra el texto libre del usuario, y registros de gobierno y auditoría a los 90.
 
+9. **Excepciones aceptadas (decisión del dueño del repo, 2026-10-01).** La corrida de release del 2026-10-01 (`evidence/release-gates-20261001T214637.md`) se acepta como resultado honesto del MVP, incluidos dos gates de calidad en FAIL. Los valores medidos y los umbrales no se modifican:
+   - `intent_routing_macro_f1` = 0,936 en holdout (gate ≥ 0,95): seis casos adversariales off-topic/inyección.
+   - `retrieval_mrr_at_5` = 0,792 en holdout (gate ≥ 0,8).
+   - Etiquetas de un solo autor, sin adjudicación por dos revisores ni muestra humana de factualidad: queda como **punto abierto**, no realizado.
+
+   Ningún gate de seguridad tiene excepción: un efecto o lectura indebida sigue bloqueando cualquier release. Siguiente paso: un nuevo ciclo de ajuste del router y del ranking sobre dev, con un holdout nuevo (el actual ya se observó y no puede volver a usarse para decidir), y la adjudicación humana antes de declarar los gates cumplidos.
+
 ## Open Questions
 
-Adjudicación humana de etiquetas y una muestra de revisión de factualidad: requieren personas, no código.
+Adjudicación humana de etiquetas y una muestra de revisión de factualidad: requieren personas, no código (excepción aceptada, decisión 9).

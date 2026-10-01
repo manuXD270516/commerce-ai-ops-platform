@@ -2,7 +2,17 @@
 
 ## Estado
 
-Implementado y medido (2026-10-01, commit `c3cec67`). **No archivado**: la tarea 1.1 sigue abierta (etiquetas sin adjudicación por dos revisores) y la evaluación de release **falla dos gates de calidad** sobre el holdout. Ningún gate de seguridad falló.
+Implementado y medido (2026-10-01, commit `c3cec67`). La evaluación de release **falla dos gates de calidad** sobre el holdout; ningún gate de seguridad falló. Archivado con excepciones aceptadas.
+
+## Excepciones aceptadas
+
+Decisión del dueño del repo (2026-10-01), registrada en design.md (decisión 9): se acepta esta corrida como resultado honesto, sin cambiar valores ni umbrales.
+
+| Excepción | Medido | Gate | Siguiente paso |
+|---|---|---|---|
+| `intent_routing_macro_f1` (holdout) | 0,936 | ≥ 0,95 | nuevo ciclo de ajuste en dev y holdout nuevo |
+| `retrieval_mrr_at_5` (holdout) | 0,792 | ≥ 0,8 | ídem |
+| Adjudicación de etiquetas por dos revisores | **no realizada** (punto abierto) | requerida por rag-evals.md | adjudicación humana antes de declarar gates cumplidos |
 
 ## Evidencia exigida
 

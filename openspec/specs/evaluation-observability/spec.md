@@ -1,7 +1,7 @@
 # evaluation-observability Specification
 
 ## Purpose
-Garantizar que el sistema se construye, verifica, evalúa, observa y despliega de forma reproducible, y que ningún objetivo, simulación o dato no medido se presenta como resultado. Hoy cubre el bootstrap de M0 y el ciclo de vida spec-driven; los gates de evaluación, trazas y auditoría (M10) y el despliegue con recuperación (M11) se añaden con sus changes.
+Garantizar que el sistema se construye, verifica, evalúa, observa y despliega de forma reproducible, y que ningún objetivo, simulación o dato no medido se presenta como resultado. Cubre el bootstrap de M0, el ciclo de vida spec-driven y los gates de evaluación, trazas y auditoría (M10); el despliegue con recuperación (M11) se añade con su change. Excepciones aceptadas de M10 (2026-10-01): la release del holdout falla `intent_routing_macro_f1` (0,936 < 0,95) y `retrieval_mrr_at_5` (0,792 < 0,8) y las etiquetas no tienen adjudicación de dos revisores; ver `openspec/changes/archive/2026-10-01-add-evaluation-gates/design.md` (decisión 9). Ninguna excepción aplica a gates de seguridad.
 
 ## Requirements
 
@@ -38,3 +38,21 @@ Cada feature SHALL seguir proposal → spec → design → tasks → implementat
 #### Scenario: Archiving a change
 - **WHEN** se archiva un change
 - **THEN** todas sus tareas están marcadas con evidencia en verification.md y `openspec validate --strict` termina sin errores
+
+### Requirement: Versioned evaluation gates
+El proyecto SHALL medir las diez dimensiones solicitadas con dataset versionado, baseline, holdout y gates de docs/rag-evals.md; resultados incluirán denominadores y configuración reproducible.
+
+#### Scenario: Unauthorized effect in release evaluation
+- **WHEN** ocurre una lectura indebida o efecto no autorizado durante las pruebas
+- **THEN** la release falla aunque los promedios restantes superen sus umbrales
+
+#### Scenario: Simulated provider benchmark
+- **WHEN** una corrida usa un proveedor simulado
+- **THEN** el reporte la identifica como SIMULATED y no la presenta como latencia/calidad de un proveedor real
+
+### Requirement: Correlated traces and protected audit
+El sistema SHALL correlacionar request/run/tool/action, métricas de tokens/latencia y decisiones auditadas sin registrar secretos, PII innecesaria ni chain-of-thought.
+
+#### Scenario: Investigate an executed action
+- **WHEN** un revisor autorizado consulta una acción
+- **THEN** identifica actor, aprobación, política, versión, resultado e idempotencia mediante evidencia persistida

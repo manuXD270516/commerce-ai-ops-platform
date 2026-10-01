@@ -1,6 +1,13 @@
 # Roadmap del MVP
 
-M0 a M3 completados (2026-09-29) y M4–M9 (2026-10-01). M10 y M11 implementados y medidos pero no cerrados: M10 falla dos gates de calidad en el holdout y falta adjudicación humana de etiquetas; M11 corre y se ensaya en un stack production-like local, y el despliegue cloud espera autorización y un host. La secuencia expresa dependencias, no estimaciones de calendario. Cada milestone tiene su propio change en `openspec/changes/` con los requisitos que implementa; se archiva sólo cuando sus tareas tienen evidencia. M0 usó `define-commerce-ops-mvp`, que nació como contrato M0–M11 y se dividió tras completarlo. Si cambia alcance o comportamiento, actualizar proposal/spec/design/tasks antes de implementar; una feature adicional lleva nuevo change.
+M0 a M3 completados (2026-09-29) y M4–M10 (2026-10-01). M10 se cerró con excepciones aceptadas por el dueño del repo (2026-10-01): la release del holdout falla routing macro-F1 (0,936 < 0,95) y MRR@5 (0,792 < 0,8), y la adjudicación humana de etiquetas sigue abierta; siguiente paso, un ciclo de ajuste nuevo con holdout nuevo. M11 cambia de destino a AKS con alcance "listo para desplegar": el despliegue real es un paso futuro que requiere autorización.
+
+## Excepciones aceptadas
+
+| Fecha | Milestone | Excepción | Siguiente paso |
+|---|---|---|---|
+| 2026-10-01 | M10 | `intent_routing_macro_f1` 0,936 y `retrieval_mrr_at_5` 0,792 en holdout, bajo sus gates | ajuste en dev + holdout nuevo; los umbrales no cambian |
+| 2026-10-01 | M10 | Etiquetas sin adjudicación de dos revisores (punto abierto, no realizado) | adjudicación humana | La secuencia expresa dependencias, no estimaciones de calendario. Cada milestone tiene su propio change en `openspec/changes/` con los requisitos que implementa; se archiva sólo cuando sus tareas tienen evidencia. M0 usó `define-commerce-ops-mvp`, que nació como contrato M0–M11 y se dividió tras completarlo. Si cambia alcance o comportamiento, actualizar proposal/spec/design/tasks antes de implementar; una feature adicional lleva nuevo change.
 
 | Milestone (change) | Dependencias | Entregable previsto | Gate de salida / evidencia |
 |---|---|---|---|
@@ -14,7 +21,7 @@ M0 a M3 completados (2026-09-29) y M4–M9 (2026-10-01). M10 y M11 implementados
 | M7 Specialist agents (`add-specialist-agents`, completado) | M6 | Workflows Order, Recommendation, Inventory y auxiliares Catalog/Support | Casos end-to-end con evidencia; guardrails; cero escrituras privilegiadas sin M8 |
 | M8 Human approval (`add-human-approval`, completado) | M5, M7 | ActionRequest/Approval, separación de funciones, consumo atómico | Replay/expiry/payload/version/restart/revocation probados; autorización al commit |
 | M9 React/Next.js UI (`add-operations-console`, completado) | M2–M8 | Consola operacional, streaming, citas y bandeja de aprobación | E2E por rol; loading/error/empty/degraded; teclado; reconexión; simulaciones visibles |
-| M10 Evals (`add-evaluation-gates`, implementado; release FAIL en 2 gates de calidad) | Harness desde M0; M4–M9 | Dataset 300, holdout, gates calidad/seguridad/carga y dashboard | Reporte reproducible de diez métricas; todos los gates y limitaciones publicadas |
+| M10 Evals (`add-evaluation-gates`, completado con excepciones aceptadas) | Harness desde M0; M4–M9 | Dataset 300, holdout, gates calidad/seguridad/carga y dashboard | Reporte reproducible de diez métricas; todos los gates y limitaciones publicadas |
 | M11 Deployment/demo (`add-cloud-deployment-demo`, local production-like; cloud pendiente) | M10 | Contenedores/cloud, CI deploy, secretos, runbook, backup/restore y demo | Smoke con 3 casos, rollback y restart; restauración ensayada; costo/latencia etiquetados |
 
 M5 publica update_order con ejecución bloqueada mientras no exista aprobación verificable. M7 puede producir propuestas, no saltarse M8. El scaffold visual de M0 no equivale a la consola de M9. Observabilidad y tests acompañan cada milestone; M10 integra evidencia, no inaugura la calidad.

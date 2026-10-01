@@ -4,7 +4,7 @@ La liberación exige medir las diez dimensiones con dataset versionado, holdout 
 
 ## What Changes
 
-- Dataset de 300 casos adjudicados con holdout sellado, baselines y tres repeticiones.
+- Dataset de 300 casos con holdout sellado, baselines y tres repeticiones. La adjudicación humana de etiquetas por dos revisores queda como excepción aceptada y punto abierto (decisión del dueño del repo, 2026-10-01; ver design.md, decisión 9).
 - Gates de seguridad, calidad, performance y tokens con intervalos.
 - Dashboards, trazas y auditoría de redacción y retención de PII.
 
