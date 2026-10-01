@@ -1,7 +1,7 @@
 {
   "version": "0.1.0",
   "source": "docs/rag-evals.md#métricas-y-gates-propuestos",
-  "note": "Proposed demo gates. All EXPECTED: no implementation measures them before M4-M10.",
+  "note": "Demo gates evaluated by pnpm evals:release (M10) on the holdouts and the last load report. The demo-gates suite still lists them as EXPECTED targets; observed values live in release-gates-*.md.",
   "gates": [
     {
       "metric": "intent_routing_macro_f1",

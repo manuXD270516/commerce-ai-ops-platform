@@ -1,0 +1,77 @@
+{
+  "schema_version": "0.1.0",
+  "run": {
+    "id": "load-20261001T071707-3278",
+    "suite": "load",
+    "started_at": "2026-10-01T07:17:07.044Z",
+    "finished_at": "2026-10-01T07:37:18.678Z",
+    "commit": {
+      "sha": "ecf321399a3b65c568a1af44c87dc59b21a60304",
+      "dirty": true
+    },
+    "environment": {
+      "node": "v22.23.1",
+      "platform": "win32",
+      "arch": "x64",
+      "ci": false
+    },
+    "target": {
+      "id": "api+worker",
+      "mode": "real",
+      "description": "API and worker builds on this machine under the documented load profile"
+    }
+  },
+  "results": [
+    {
+      "metric": "api_read_latency_p95",
+      "dimension": "latency",
+      "unit": "ms",
+      "source": "infra/scripts/load.mjs",
+      "value": 32.8,
+      "denominator": 121384,
+      "threshold": {
+        "operator": "<",
+        "value": 500
+      },
+      "notes": "p50 18.8 ms. Warmup 300 s, measured 900 s, 10 sessions. 24 x Intel(R) Core(TM) Ultra 9 275HX, 31 GiB RAM, win32 10.0.26200, local Docker Compose PostgreSQL 17 + Redis 8. Volume: 500 extra SKUs, 100 extra documents, 1000 extra orders, 5000 movements.",
+      "status": "MEASURED",
+      "passed": true
+    },
+    {
+      "metric": "error_rate",
+      "dimension": "latency",
+      "unit": "ratio",
+      "source": "infra/scripts/load.mjs",
+      "value": 0,
+      "numerator": 0,
+      "denominator": 142541,
+      "threshold": {
+        "operator": "<",
+        "value": 0.05
+      },
+      "status": "MEASURED",
+      "passed": true
+    },
+    {
+      "metric": "anomaly_alert_latency",
+      "dimension": "latency",
+      "unit": "ms",
+      "source": "infra/scripts/load.mjs",
+      "value": 276801,
+      "denominator": 3,
+      "threshold": {
+        "operator": "<",
+        "value": 330000
+      },
+      "notes": "Worst of 3/3 stock changes detected by the scheduled 5-minute sweep: 277 s, 277 s, 277 s.",
+      "status": "MEASURED",
+      "passed": true
+    }
+  ],
+  "summary": {
+    "expected": 0,
+    "simulated": 0,
+    "measured": 3,
+    "failed": 0
+  }
+}

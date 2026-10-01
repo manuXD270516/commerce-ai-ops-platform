@@ -1,0 +1,300 @@
+{
+  "verdict": "FAIL",
+  "generated_at": "2026-10-01T21:46:37.654Z",
+  "datasets": [
+    {
+      "id": "ops-eval",
+      "version": "1.0.0",
+      "sha256": "5ec18fcb5d1fa015d1fd4ac8b75ec506a9d869651fb2a8d4513d04ae5b063459",
+      "cases": 120
+    },
+    {
+      "id": "ops-eval",
+      "version": "1.0.0",
+      "sha256": "5ec18fcb5d1fa015d1fd4ac8b75ec506a9d869651fb2a8d4513d04ae5b063459",
+      "cases": 120
+    },
+    {
+      "id": "router",
+      "version": "0.1.0",
+      "sha256": "f3305602c2e1cbf66d0164635b591cf5d3acccd14374a57f3a6c8975f8bae67a",
+      "cases": 23
+    },
+    {
+      "id": "knowledge",
+      "version": "0.1.0",
+      "sha256": "9923ab874888d6d379efef37a69fda30e540776067ea4b47357d5e71a756402b",
+      "cases": 12
+    }
+  ],
+  "gates": [
+    {
+      "metric": "intent_routing_macro_f1",
+      "dimension": "intent_routing",
+      "threshold": ">= 0.95",
+      "value": 0.936,
+      "unit": "ratio",
+      "status": "MEASURED",
+      "n": 120,
+      "source": "ops-eval-holdout (ops-eval-holdout-20261001T214545-a9ac)",
+      "passed": false,
+      "security": false
+    },
+    {
+      "metric": "tool_selection_f1",
+      "dimension": "tool_selection",
+      "threshold": ">= 0.95",
+      "value": 0.984,
+      "unit": "ratio",
+      "status": "MEASURED",
+      "n": 120,
+      "source": "ops-eval-holdout (ops-eval-holdout-20261001T214545-a9ac)",
+      "passed": true,
+      "security": false
+    },
+    {
+      "metric": "forbidden_tool_calls",
+      "dimension": "tool_selection",
+      "threshold": "== 0",
+      "value": 0,
+      "unit": "count",
+      "status": "MEASURED",
+      "n": 120,
+      "source": "ops-eval-holdout (ops-eval-holdout-20261001T214545-a9ac)",
+      "passed": true,
+      "security": true
+    },
+    {
+      "metric": "recommendation_ndcg_at_3",
+      "dimension": "recommendation_relevance",
+      "threshold": ">= 0.85",
+      "value": 1,
+      "unit": "ratio",
+      "status": "MEASURED",
+      "n": 24,
+      "source": "ops-eval-holdout (ops-eval-holdout-20261001T214545-a9ac)",
+      "passed": true,
+      "security": false
+    },
+    {
+      "metric": "recommendation_eligible_ratio",
+      "dimension": "recommendation_relevance",
+      "threshold": "== 1",
+      "value": 1,
+      "unit": "ratio",
+      "status": "MEASURED",
+      "n": 56,
+      "source": "ops-eval-holdout (ops-eval-holdout-20261001T214545-a9ac)",
+      "passed": true,
+      "security": true
+    },
+    {
+      "metric": "retrieval_recall_at_5",
+      "dimension": "retrieval_quality",
+      "threshold": ">= 0.9",
+      "value": 0.917,
+      "unit": "ratio",
+      "status": "MEASURED",
+      "n": 12,
+      "source": "retrieval-holdout (retrieval-holdout-20261001T214637-e2dc)",
+      "passed": true,
+      "security": false
+    },
+    {
+      "metric": "retrieval_mrr_at_5",
+      "dimension": "retrieval_quality",
+      "threshold": ">= 0.8",
+      "value": 0.792,
+      "unit": "ratio",
+      "status": "MEASURED",
+      "n": 12,
+      "source": "retrieval-holdout (retrieval-holdout-20261001T214637-e2dc)",
+      "passed": false,
+      "security": false
+    },
+    {
+      "metric": "factuality_supported_claims",
+      "dimension": "factuality",
+      "threshold": ">= 0.98",
+      "value": 1,
+      "unit": "ratio",
+      "status": "MEASURED",
+      "n": 246,
+      "source": "ops-eval-holdout (ops-eval-holdout-20261001T214545-a9ac)",
+      "passed": true,
+      "security": false
+    },
+    {
+      "metric": "critical_fact_inventions",
+      "dimension": "factuality",
+      "threshold": "== 0",
+      "value": 0,
+      "unit": "count",
+      "status": "MEASURED",
+      "n": 246,
+      "source": "ops-eval-holdout (ops-eval-holdout-20261001T214545-a9ac)",
+      "passed": true,
+      "security": true
+    },
+    {
+      "metric": "tool_args_schema_valid",
+      "dimension": "tool_argument_correctness",
+      "threshold": "== 1",
+      "value": 1,
+      "unit": "ratio",
+      "status": "MEASURED",
+      "n": 187,
+      "source": "ops-eval-holdout (ops-eval-holdout-20261001T214545-a9ac)",
+      "passed": true,
+      "security": false
+    },
+    {
+      "metric": "tool_args_semantic_match",
+      "dimension": "tool_argument_correctness",
+      "threshold": ">= 0.98",
+      "value": 1,
+      "unit": "ratio",
+      "status": "MEASURED",
+      "n": 128,
+      "source": "ops-eval-holdout (ops-eval-holdout-20261001T214545-a9ac)",
+      "passed": true,
+      "security": false
+    },
+    {
+      "metric": "unauthorized_effects",
+      "dimension": "unauthorized_action_rate",
+      "threshold": "== 0",
+      "value": 0,
+      "unit": "count",
+      "status": "MEASURED",
+      "n": 120,
+      "source": "ops-eval-holdout (ops-eval-holdout-20261001T214545-a9ac)",
+      "passed": true,
+      "security": true
+    },
+    {
+      "metric": "unauthorized_reads",
+      "dimension": "unauthorized_action_rate",
+      "threshold": "== 0",
+      "value": 0,
+      "unit": "count",
+      "status": "MEASURED",
+      "n": 120,
+      "source": "ops-eval-holdout (ops-eval-holdout-20261001T214545-a9ac)",
+      "passed": true,
+      "security": true
+    },
+    {
+      "metric": "escalation_recall",
+      "dimension": "escalation_accuracy",
+      "threshold": ">= 0.95",
+      "value": 1,
+      "unit": "ratio",
+      "status": "MEASURED",
+      "n": 16,
+      "source": "ops-eval-holdout (ops-eval-holdout-20261001T214545-a9ac)",
+      "passed": true,
+      "security": false
+    },
+    {
+      "metric": "escalation_precision",
+      "dimension": "escalation_accuracy",
+      "threshold": ">= 0.9",
+      "value": 1,
+      "unit": "ratio",
+      "status": "MEASURED",
+      "n": 16,
+      "source": "ops-eval-holdout (ops-eval-holdout-20261001T214545-a9ac)",
+      "passed": true,
+      "security": false
+    },
+    {
+      "metric": "api_read_latency_p95",
+      "dimension": "latency",
+      "threshold": "< 500",
+      "value": 32.8,
+      "unit": "ms",
+      "status": "MEASURED",
+      "n": 121384,
+      "source": "load (load-20261001T071707-3278)",
+      "passed": true,
+      "security": false
+    },
+    {
+      "metric": "ai_workflow_latency_p95",
+      "dimension": "latency",
+      "threshold": "< 12000",
+      "value": 489.2,
+      "unit": "ms",
+      "status": "SIMULATED",
+      "n": 21157,
+      "source": "load-provider (load-provider-20261001T071707-8282)",
+      "passed": true,
+      "security": false
+    },
+    {
+      "metric": "anomaly_alert_latency",
+      "dimension": "latency",
+      "threshold": "< 330000",
+      "value": 276801,
+      "unit": "ms",
+      "status": "MEASURED",
+      "n": 3,
+      "source": "load (load-20261001T071707-3278)",
+      "passed": true,
+      "security": false
+    },
+    {
+      "metric": "tokens_per_run_p95",
+      "dimension": "token_usage",
+      "threshold": "<= 8000",
+      "value": 1394,
+      "unit": "tokens",
+      "status": "SIMULATED",
+      "n": 21157,
+      "source": "load-provider (load-provider-20261001T071707-8282)",
+      "passed": true,
+      "security": false
+    },
+    {
+      "metric": "tokens_per_run_max",
+      "dimension": "token_usage",
+      "threshold": "<= 12000",
+      "value": 1646,
+      "unit": "tokens",
+      "status": "SIMULATED",
+      "n": 120,
+      "source": "ops-eval-holdout-provider (ops-eval-holdout-provider-20261001T214545-a25c)",
+      "passed": true,
+      "security": false
+    },
+    {
+      "metric": "cost_per_run",
+      "dimension": "cost",
+      "threshold": ">= 0",
+      "value": 0,
+      "unit": "usd",
+      "status": "SIMULATED",
+      "n": 120,
+      "source": "ops-eval-holdout-provider (ops-eval-holdout-provider-20261001T214545-a25c)",
+      "passed": true,
+      "security": false
+    }
+  ],
+  "failed": [
+    "intent_routing_macro_f1",
+    "retrieval_mrr_at_5"
+  ],
+  "security_failed": [],
+  "simulated_gates": [
+    "ai_workflow_latency_p95",
+    "tokens_per_run_p95",
+    "tokens_per_run_max",
+    "cost_per_run"
+  ],
+  "notes": [
+    "Holdouts (ops-eval@1.0.0 holdout, router@0.1.0 holdout, knowledge@0.1.0 holdout) were not used for tuning after the configuration was fixed.",
+    "SIMULATED gates describe orchestration with the template synthesizer, never a real provider; a PASS there does not certify real model latency, tokens or cost.",
+    "Labels are single-author and not adjudicated by a second reviewer; factuality is checked deterministically against the database without a human review sample."
+  ]
+}

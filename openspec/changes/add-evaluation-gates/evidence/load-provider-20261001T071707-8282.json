@@ -1,0 +1,62 @@
+{
+  "schema_version": "0.1.0",
+  "run": {
+    "id": "load-provider-20261001T071707-8282",
+    "suite": "load-provider",
+    "started_at": "2026-10-01T07:17:07.044Z",
+    "finished_at": "2026-10-01T07:37:18.785Z",
+    "commit": {
+      "sha": "ecf321399a3b65c568a1af44c87dc59b21a60304",
+      "dirty": true
+    },
+    "environment": {
+      "node": "v22.23.1",
+      "platform": "win32",
+      "arch": "x64",
+      "ci": false
+    },
+    "target": {
+      "id": "template-synth.v1",
+      "mode": "simulated",
+      "description": "Agent runs through the queue and worker with the template synthesizer; no model latency or tokens are real"
+    }
+  },
+  "results": [
+    {
+      "metric": "ai_workflow_latency_p95",
+      "dimension": "latency",
+      "unit": "ms",
+      "source": "infra/scripts/load.mjs",
+      "value": 489.2,
+      "denominator": 21157,
+      "threshold": {
+        "operator": "<",
+        "value": 12000
+      },
+      "notes": "p50 259.2 ms, end to end (POST, queue, worker, polling). Warmup 300 s, measured 900 s, 10 sessions. 24 x Intel(R) Core(TM) Ultra 9 275HX, 31 GiB RAM, win32 10.0.26200, local Docker Compose PostgreSQL 17 + Redis 8. Volume: 500 extra SKUs, 100 extra documents, 1000 extra orders, 5000 movements.",
+      "status": "SIMULATED",
+      "passed": true
+    },
+    {
+      "metric": "tokens_per_run_p95",
+      "dimension": "token_usage",
+      "unit": "tokens",
+      "source": "infra/scripts/load.mjs",
+      "value": 1394,
+      "denominator": 21157,
+      "threshold": {
+        "operator": "<=",
+        "value": 8000
+      },
+      "notes": "Estimated tokens of the template synthesizer.",
+      "status": "SIMULATED",
+      "passed": true
+    }
+  ],
+  "summary": {
+    "expected": 0,
+    "simulated": 2,
+    "measured": 0,
+    "failed": 0
+  }
+}

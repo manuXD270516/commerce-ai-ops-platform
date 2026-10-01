@@ -1,0 +1,87 @@
+{
+  "schema_version": "0.1.0",
+  "run": {
+    "id": "pii-audit-20261001T214500-90b6",
+    "suite": "pii-audit",
+    "started_at": "2026-10-01T21:45:00.001Z",
+    "finished_at": "2026-10-01T21:45:00.095Z",
+    "commit": {
+      "sha": "ecf321399a3b65c568a1af44c87dc59b21a60304",
+      "dirty": true
+    },
+    "environment": {
+      "node": "v22.23.1",
+      "platform": "win32",
+      "arch": "x64",
+      "ci": false
+    },
+    "target": {
+      "id": "local-database+logs",
+      "mode": "real",
+      "description": "Scan of persisted run, audit, evidence, idempotency, outbox, ticket and checkpoint data, customer email storage and the latest smoke logs"
+    }
+  },
+  "results": [
+    {
+      "metric": "pii_in_operational_data",
+      "dimension": "audit_redaction",
+      "unit": "count",
+      "source": "evals/src/pii-audit.ts",
+      "value": 0,
+      "denominator": 2725,
+      "threshold": {
+        "operator": "==",
+        "value": 0
+      },
+      "notes": "No email, card number, bearer token or private key in 2725 rows.",
+      "status": "MEASURED",
+      "passed": true
+    },
+    {
+      "metric": "customer_email_encrypted",
+      "dimension": "audit_redaction",
+      "unit": "ratio",
+      "source": "evals/src/pii-audit.ts",
+      "value": 1,
+      "numerator": 3,
+      "denominator": 3,
+      "threshold": {
+        "operator": "==",
+        "value": 1
+      },
+      "status": "MEASURED",
+      "passed": true
+    },
+    {
+      "metric": "secrets_in_logs",
+      "dimension": "audit_redaction",
+      "unit": "count",
+      "source": "evals/src/pii-audit.ts",
+      "value": 0,
+      "denominator": 90,
+      "threshold": {
+        "operator": "==",
+        "value": 0
+      },
+      "notes": "90 JSON log lines of the latest smoke run.",
+      "status": "MEASURED",
+      "passed": true
+    },
+    {
+      "metric": "run_inputs_with_email",
+      "dimension": "audit_redaction",
+      "unit": "count",
+      "source": "evals/src/pii-audit.ts",
+      "value": 0,
+      "denominator": 1,
+      "notes": "User free text kept in agent_runs.input until the 30-day retention erases it (pnpm db:retention); reported, not gated.",
+      "status": "MEASURED"
+    }
+  ],
+  "summary": {
+    "expected": 0,
+    "simulated": 0,
+    "measured": 4,
+    "failed": 0
+  }
+}
