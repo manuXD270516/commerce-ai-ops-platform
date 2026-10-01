@@ -1,33 +1,47 @@
-import { cookies } from 'next/headers';
-import { DEMO_USERS, sessionFromCookie } from '../lib/session';
+import Link from 'next/link';
+import { requireSession } from '../lib/api';
 
 export default async function HomePage() {
-  const jar = await cookies();
-  const session = sessionFromCookie(jar.toString());
+  const session = await requireSession();
   return (
     <section>
       <h1>Consola operacional</h1>
       <p>
-        Sesión actual: <strong>{session.label}</strong> ({session.role}). El backend es la
-        autoridad.
+        Hola, <strong>{session.label}</strong>. El backend es la autoridad: esta consola sólo
+        muestra lo que tu membership permite y ninguna acción se da por hecha hasta que el servidor
+        la confirma.
       </p>
-      <form action="/api/session" method="post">
-        <label htmlFor="subject">Cambiar usuario de demo</label>{' '}
-        <select id="subject" name="subject" defaultValue={session.subjectId}>
-          {DEMO_USERS.map((user) => (
-            <option key={user.subjectId} value={user.subjectId}>
-              {user.label}
-            </option>
-          ))}
-        </select>{' '}
-        <button type="submit">Entrar</button>
-      </form>
       <ul>
-        <li>Customer: catálogo, su orden y tickets. No ve PII ajena ni aprobaciones.</li>
-        <li>
-          Inventory: balances y anomalías. Sin datos privados de clientes ni decidir aprobaciones.
-        </li>
-        <li>Approver: bandeja de ActionRequest. Distinto del solicitante.</li>
+        {session.role === 'customer' && (
+          <>
+            <li>
+              <Link href="/runs">Consultar una orden o pedir una recomendación</Link> al asistente.
+            </li>
+            <li>
+              <Link href="/orders">Ver tus órdenes</Link> con su timeline de envío.
+            </li>
+          </>
+        )}
+        {session.role === 'support' && (
+          <li>
+            <Link href="/runs">Investigar órdenes</Link> y abrir tickets con evidencia, siempre con
+            confirmación explícita.
+          </li>
+        )}
+        {session.role === 'inventory' && (
+          <li>
+            <Link href="/inventory">Alertas y balances</Link>: las reglas no ajustan stock.
+          </li>
+        )}
+        {session.role === 'approver' && (
+          <li>
+            <Link href="/approvals">Bandeja de aprobación</Link>: revisás solicitudes de otros
+            usuarios; nunca las tuyas.
+          </li>
+        )}
+        {session.role === 'admin' && (
+          <li>Admin gestiona configuración; no aprueba ni opera órdenes.</li>
+        )}
       </ul>
     </section>
   );

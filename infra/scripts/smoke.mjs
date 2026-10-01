@@ -250,7 +250,22 @@ try {
   );
   check('api rejects catalog calls without a bearer token', unauthenticated.status === 401);
 
-  const catalogHtml = await (await fetch('http://127.0.0.1:3000/catalog')).text();
+  // Demo sign-in on the console (same-origin form post), then a server-rendered catalog page.
+  const signIn = await fetch('http://127.0.0.1:3000/api/session', {
+    method: 'POST',
+    redirect: 'manual',
+    headers: {
+      origin: 'http://127.0.0.1:3000',
+      'content-type': 'application/x-www-form-urlencoded',
+    },
+    body: 'subject=acme-customer-ana',
+  });
+  const sessionCookie = (signIn.headers.get('set-cookie') ?? '').split(';')[0];
+  const catalogHtml = await (
+    await fetch('http://127.0.0.1:3000/catalog?category=notebook&price_lt=150000', {
+      headers: { cookie: sessionCookie },
+    })
+  ).text();
   check(
     'web catalog reaches the api with a signed token and applies price_minor < 150000',
     catalogHtml.includes('NB-DEV-16') &&

@@ -213,6 +213,19 @@ export async function decideApproval(
       if (request.expires_at.getTime() <= Date.now()) {
         throw new DomainError('CONFLICT', 'Action request expired', { markRequest: 'EXPIRED' });
       }
+      // The approver decides on the order as it was requested; if it moved, the decision would be
+      // about something else, so the request becomes STALE and a new one is needed.
+      const order = await trx
+        .selectFrom('orders')
+        .select('version')
+        .where('id', '=', request.resource_id)
+        .executeTakeFirst();
+      if (input.decision === 'APPROVED' && order?.version !== request.expected_version) {
+        throw new DomainError('CONFLICT', 'Order changed since the request was made', {
+          markRequest: 'STALE',
+          currentVersion: order?.version ?? null,
+        });
+      }
       await trx
         .insertInto('approvals')
         .values({

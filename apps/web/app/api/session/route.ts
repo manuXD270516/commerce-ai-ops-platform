@@ -1,18 +1,31 @@
-import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
-import { DEMO_USERS } from '../../../lib/session';
+import { sameOrigin } from '../../../lib/api';
+import { DEMO_USERS, SESSION_COOKIE, sealSession } from '../../../lib/session';
 
+/** Demo sign-in: sets a MAC-protected, HttpOnly, SameSite=Strict session cookie. */
 export async function POST(request: Request): Promise<Response> {
+  if (!sameOrigin(request)) return new NextResponse('forbidden', { status: 403 });
   const form = await request.formData();
   const raw = form.get('subject');
   const subject = typeof raw === 'string' ? raw : '';
-  const known = DEMO_USERS.some((u) => u.subjectId === subject);
-  const res = NextResponse.redirect(new URL('/', request.url));
-  if (known) res.cookies.set('subject', subject, { httpOnly: true, sameSite: 'lax', path: '/' });
+  if (!DEMO_USERS.some((u) => u.subjectId === subject)) {
+    return seeOther('/login');
+  }
+  const res = seeOther('/');
+  res.cookies.set(SESSION_COOKIE, sealSession(subject), {
+    httpOnly: true,
+    sameSite: 'strict',
+    // Behind the TLS proxy the app sees http; the proxy's header tells the real scheme.
+    secure:
+      request.headers.get('x-forwarded-proto') === 'https' ||
+      new URL(request.url).protocol === 'https:',
+    path: '/',
+    maxAge: 8 * 3600,
+  });
   return res;
 }
 
-export async function GET(): Promise<Response> {
-  const jar = await cookies();
-  return NextResponse.json({ subject: jar.get('subject')?.value ?? null });
+/** Relative redirect: the browser stays on the host it used, so the cookie keeps applying. */
+function seeOther(path: string): NextResponse {
+  return new NextResponse(null, { status: 303, headers: { location: path } });
 }

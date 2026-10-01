@@ -30,6 +30,8 @@
           "stale": { "type": "boolean" },
           "source_mode": { "type": "string", "const": "simulated" },
           "last_observed_at": { "type": "string", "format": "date-time" },
+          "estimated_delivery_at": { "type": ["string", "null"], "format": "date-time" },
+          "delay_hours": { "type": ["integer", "null"], "minimum": 0 },
           "items": {
             "type": "array",
             "maxItems": 20,
@@ -42,6 +44,22 @@
                 "quantity": { "type": "integer", "minimum": 1 }
               }
             }
+          }
+        }
+      }
+    },
+    "escalation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required", "rule_version", "reasons"],
+      "properties": {
+        "required": { "type": "boolean" },
+        "rule_version": { "type": "string" },
+        "reasons": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["delay_over_48h", "delivered_disputed", "shipment_lost"]
           }
         }
       }

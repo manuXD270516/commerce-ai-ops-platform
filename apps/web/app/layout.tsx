@@ -1,39 +1,74 @@
 import type { Metadata } from 'next';
-import type { ReactNode } from 'react';
 import Link from 'next/link';
+import type { ReactNode } from 'react';
+import { currentSession } from '../lib/api';
+import type { Role } from '../lib/session';
+import './globals.css';
 
 export const metadata: Metadata = {
   title: 'Commerce AI Ops — consola',
   robots: { index: false, follow: false },
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+/** Navigation by role is a convenience; every view is authorized again by the API. */
+const LINKS: readonly { href: string; label: string; roles: readonly Role[] }[] = [
+  { href: '/', label: 'Inicio', roles: ['customer', 'support', 'inventory', 'approver', 'admin'] },
+  { href: '/runs', label: 'Asistente', roles: ['customer', 'support', 'inventory', 'approver'] },
+  {
+    href: '/catalog',
+    label: 'Catálogo',
+    roles: ['customer', 'support', 'inventory', 'approver', 'admin'],
+  },
+  { href: '/orders', label: 'Órdenes', roles: ['customer', 'support', 'approver'] },
+  { href: '/inventory', label: 'Inventario', roles: ['inventory', 'support', 'approver', 'admin'] },
+  { href: '/tickets', label: 'Tickets', roles: ['customer', 'support', 'approver', 'admin'] },
+  { href: '/approvals', label: 'Aprobaciones', roles: ['customer', 'support', 'approver'] },
+];
+
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const session = await currentSession();
   return (
     <html lang="es">
-      <body style={{ fontFamily: 'system-ui, sans-serif', margin: '1.5rem', maxWidth: '72rem' }}>
-        <a href="#contenido" style={{ position: 'absolute', left: '-999px' }}>
+      <body>
+        <a className="skip-link" href="#contenido">
           Saltar al contenido
         </a>
-        <header>
-          <p>
-            <strong>Datos sintéticos / envío simulado.</strong> La consola no muestra
-            chain-of-thought.
-          </p>
-          <nav aria-label="Principal">
-            <Link href="/">Inicio</Link>
-            {' · '}
-            <Link href="/catalog">Catálogo</Link>
-            {' · '}
-            <Link href="/orders/00000000-0000-4000-8000-000000000401">Orden Ana</Link>
-            {' · '}
-            <Link href="/inventory">Inventario</Link>
-            {' · '}
-            <Link href="/tickets">Tickets</Link>
-            {' · '}
-            <Link href="/approvals">Aprobaciones</Link>
-          </nav>
-        </header>
-        <main id="contenido">{children}</main>
+        <div className="shell">
+          <header className="top">
+            <p className="notice sim" role="note">
+              <span className="badge sim">Datos sintéticos</span> Transportistas y notificaciones
+              simulados. Las respuestas del asistente se redactan con una plantilla determinística
+              (SIMULATED); la consola nunca muestra razonamiento interno.
+            </p>
+            {session ? (
+              <div>
+                <span>
+                  Sesión: <strong>{session.label}</strong>{' '}
+                  <span className="muted">({session.role})</span>
+                </span>{' '}
+                <form action="/api/session/logout" method="post" style={{ display: 'inline' }}>
+                  <button type="submit" className="secondary">
+                    Salir
+                  </button>
+                </form>
+                <nav aria-label="Principal">
+                  <ul>
+                    {LINKS.filter((l) => l.roles.includes(session.role)).map((l) => (
+                      <li key={l.href}>
+                        <Link href={l.href}>{l.label}</Link>
+                      </li>
+                    ))}
+                  </ul>
+                </nav>
+              </div>
+            ) : (
+              <Link href="/login">Ingresar</Link>
+            )}
+          </header>
+          <main id="contenido" tabIndex={-1}>
+            {children}
+          </main>
+        </div>
       </body>
     </html>
   );

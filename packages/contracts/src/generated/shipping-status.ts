@@ -13,6 +13,8 @@ export interface ShippingStatus {
     stale: boolean;
     source_mode: 'simulated';
     last_observed_at: string;
+    estimated_delivery_at?: string | null;
+    delay_hours?: number | null;
     /**
      * @maxItems 20
      */
@@ -21,6 +23,11 @@ export interface ShippingStatus {
       quantity: number;
     }[];
   }[];
+  escalation?: {
+    required: boolean;
+    rule_version: string;
+    reasons: ('delay_over_48h' | 'delivered_disputed' | 'shipment_lost')[];
+  };
   observed_at: string;
   source: 'sql';
 }

@@ -1,6 +1,6 @@
 # Roadmap del MVP
 
-M0 a M3 completados (2026-09-29) y M4–M8 (2026-10-01); M9–M11 pendientes. La secuencia expresa dependencias, no estimaciones de calendario. Cada milestone tiene su propio change en `openspec/changes/` con los requisitos que implementa; se archiva sólo cuando sus tareas tienen evidencia. M0 usó `define-commerce-ops-mvp`, que nació como contrato M0–M11 y se dividió tras completarlo. Si cambia alcance o comportamiento, actualizar proposal/spec/design/tasks antes de implementar; una feature adicional lleva nuevo change.
+M0 a M3 completados (2026-09-29) y M4–M9 (2026-10-01); M10–M11 pendientes. La secuencia expresa dependencias, no estimaciones de calendario. Cada milestone tiene su propio change en `openspec/changes/` con los requisitos que implementa; se archiva sólo cuando sus tareas tienen evidencia. M0 usó `define-commerce-ops-mvp`, que nació como contrato M0–M11 y se dividió tras completarlo. Si cambia alcance o comportamiento, actualizar proposal/spec/design/tasks antes de implementar; una feature adicional lleva nuevo change.
 
 | Milestone (change) | Dependencias | Entregable previsto | Gate de salida / evidencia |
 |---|---|---|---|
@@ -13,7 +13,7 @@ M0 a M3 completados (2026-09-29) y M4–M8 (2026-10-01); M9–M11 pendientes. La
 | M6 Agent router (`add-agent-router`, completado) | M5 | Selección de proveedor por eval, grafo, routing y presupuestos | Macro-F1 y errores; reanudación durable; supervisor sin reglas de negocio |
 | M7 Specialist agents (`add-specialist-agents`, completado) | M6 | Workflows Order, Recommendation, Inventory y auxiliares Catalog/Support | Casos end-to-end con evidencia; guardrails; cero escrituras privilegiadas sin M8 |
 | M8 Human approval (`add-human-approval`, completado) | M5, M7 | ActionRequest/Approval, separación de funciones, consumo atómico | Replay/expiry/payload/version/restart/revocation probados; autorización al commit |
-| M9 React/Next.js UI (`add-operations-console`) | M2–M8 | Consola operacional, streaming, citas y bandeja de aprobación | E2E por rol; loading/error/empty/degraded; teclado; reconexión; simulaciones visibles |
+| M9 React/Next.js UI (`add-operations-console`, completado) | M2–M8 | Consola operacional, streaming, citas y bandeja de aprobación | E2E por rol; loading/error/empty/degraded; teclado; reconexión; simulaciones visibles |
 | M10 Evals (`add-evaluation-gates`) | Harness desde M0; M4–M9 | Dataset 300, holdout, gates calidad/seguridad/carga y dashboard | Reporte reproducible de diez métricas; todos los gates y limitaciones publicadas |
 | M11 Deployment/demo (`add-cloud-deployment-demo`) | M10 | Contenedores/cloud, CI deploy, secretos, runbook, backup/restore y demo | Smoke con 3 casos, rollback y restart; restauración ensayada; costo/latencia etiquetados |
 

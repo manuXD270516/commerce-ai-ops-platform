@@ -2,6 +2,7 @@ import type { Kysely } from 'kysely';
 import type { ActorContext } from './access.js';
 import type { Database } from './db.js';
 import { DomainError } from './errors.js';
+import { assertRole } from './actors.js';
 import { appendAudit, withUnitOfWork } from './uow.js';
 
 export interface OrderRecord {
@@ -26,6 +27,8 @@ export async function getOrder(
   ctx: ActorContext,
   orderId: string,
 ): Promise<OrderRecord> {
+  // Orders hold customer data: inventory and admin roles have no access (agents-security-mcp.md).
+  assertRole(ctx, ['customer', 'support', 'approver']);
   const result = await withUnitOfWork(db, ctx, async (trx) => {
     const order = await trx
       .selectFrom('orders')
@@ -74,4 +77,42 @@ export async function getOrder(
   });
   if (result.kind === 'denied') throw new DomainError('NOT_FOUND', 'Order not found');
   return result.order;
+}
+
+export interface OrderSummary {
+  readonly id: string;
+  readonly status: string;
+  readonly totalMinor: number;
+  readonly version: number;
+  readonly createdAt: string;
+}
+
+/** Recent orders visible to the actor: RLS limits customers to their own, staff to the tenant. */
+export async function listOrders(
+  db: Kysely<Database>,
+  ctx: ActorContext,
+): Promise<readonly OrderSummary[]> {
+  return withUnitOfWork(db, ctx, async (trx) => {
+    if (!['customer', 'support', 'approver'].includes(ctx.role)) {
+      throw new DomainError('FORBIDDEN', 'Role cannot list orders');
+    }
+    const rows = await trx
+      .selectFrom('orders')
+      .select(['id', 'status', 'total_minor', 'version', 'created_at'])
+      .orderBy('created_at', 'desc')
+      .limit(20)
+      .execute();
+    await appendAudit(trx, ctx, {
+      action: 'orders.list',
+      resourceType: 'order',
+      outcome: 'ALLOWED',
+    });
+    return rows.map((r) => ({
+      id: r.id,
+      status: r.status,
+      totalMinor: Number(r.total_minor),
+      version: r.version,
+      createdAt: r.created_at.toISOString(),
+    }));
+  });
 }

@@ -210,7 +210,12 @@ describe.skipIf(!enabled)('approval inbox and resumed runs over REST (M8)', () =
       await call('GET', `/v1/action-requests/${created.id}`, approver)
     ).json()) as { stale: boolean };
     expect(view.stale).toBe(true);
-    await call('POST', `/v1/approvals/${created.id}/decision`, approver, { decision: 'APPROVED' });
+    // The approver acts on a screen opened before the change: the server answers with a conflict.
+    const decision = await call('POST', `/v1/approvals/${created.id}/decision`, approver, {
+      decision: 'APPROVED',
+    });
+    expect(decision.status).toBe(409);
+    expect(((await decision.json()) as { code: string }).code).toBe('CONFLICT');
     const exec = await call(
       'POST',
       `/v1/orders/${orderId}/actions`,
@@ -224,7 +229,7 @@ describe.skipIf(!enabled)('approval inbox and resumed runs over REST (M8)', () =
       { 'idempotency-key': `exec-${orderId}` },
     );
     expect(exec.status).toBe(409);
-    expect(((await exec.json()) as { code: string }).code).toBe('CONFLICT');
+    expect(((await exec.json()) as { code: string }).code).toBe('APPROVAL_REQUIRED');
     const after = (await (await call('GET', `/v1/action-requests/${created.id}`, ben)).json()) as {
       status: string;
     };

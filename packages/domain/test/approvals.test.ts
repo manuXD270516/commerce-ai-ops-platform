@@ -337,4 +337,15 @@ describe.skipIf(!enabled)('human approval and the bounded cancellation (M8)', ()
       code: 'APPROVAL_REQUIRED',
     });
   });
+
+  it('refuses to approve a request whose order changed after it was opened', async () => {
+    const orderId = await confirmedOrder();
+    const created = await request(orderId);
+    await owner.query('UPDATE commerce.orders SET version = 2 WHERE id = $1', [orderId]);
+    await expect(
+      decideApproval(db, approver, { actionRequestId: created.id, decision: 'APPROVED' }),
+    ).rejects.toMatchObject({ code: 'CONFLICT', details: { currentVersion: 2 } });
+    expect(await requestStatus(created.id)).toBe('STALE');
+    expect(await executions(created.id)).toBe(0);
+  });
 });

@@ -140,6 +140,7 @@ export async function executeRun(
         usage: meter.usage(),
         event: {
           type: 'approval_required',
+          status: 'WAITING_HUMAN',
           proposal: proposalView(proposal),
           findings: findingsView(state),
         },

@@ -3,6 +3,7 @@ import {
   getOrder,
   getShippingStatus,
   listAnomalies,
+  listOrders,
   listTickets,
   recordConsent,
   ticketConsentPayload,
@@ -12,13 +13,33 @@ import { invokeTool } from '@commerce/tools';
 import type { Request, Response } from 'express';
 import { DOMAIN, DomainService } from './domain.service.js';
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 @Controller('v1')
 export class CommerceController {
   constructor(@Inject(DOMAIN) private readonly domain: DomainService) {}
 
+  @Get('orders')
+  async orders(@Req() req: Request) {
+    const ctx = await this.domain.actorOf(req);
+    const items = await listOrders(this.domain.requireDb(), ctx);
+    return {
+      items: items.map((o) => ({
+        id: o.id,
+        status: o.status,
+        total_minor: o.totalMinor,
+        version: o.version,
+        created_at: o.createdAt,
+      })),
+      observed_at: new Date().toISOString(),
+      source: 'sql',
+    };
+  }
+
   @Get('orders/:id')
   async order(@Req() req: Request, @Param('id') id: string) {
     const ctx = await this.domain.actorOf(req);
+    if (!UUID.test(id)) throw new DomainError('NOT_FOUND', 'Order not found');
     const order = await getOrder(this.domain.requireDb(), ctx, id);
     return {
       id: order.id,
@@ -42,6 +63,7 @@ export class CommerceController {
   @Get('orders/:id/shipping')
   async shipping(@Req() req: Request, @Param('id') id: string) {
     const ctx = await this.domain.actorOf(req);
+    if (!UUID.test(id)) throw new DomainError('NOT_FOUND', 'Order not found');
     const shipping = await getShippingStatus(this.domain.requireDb(), ctx, id);
     return {
       order_id: shipping.orderId,
@@ -53,11 +75,18 @@ export class CommerceController {
         stale: s.stale,
         source_mode: s.sourceMode,
         last_observed_at: s.lastObservedAt,
+        estimated_delivery_at: s.estimatedDeliveryAt,
+        delay_hours: s.delayHours,
         items: s.items.map((item) => ({
           order_item_id: item.orderItemId,
           quantity: item.quantity,
         })),
       })),
+      escalation: {
+        required: shipping.escalation.required,
+        rule_version: shipping.escalation.ruleVersion,
+        reasons: shipping.escalation.reasons,
+      },
       observed_at: shipping.observedAt,
       source: 'sql',
     };
