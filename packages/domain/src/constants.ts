@@ -14,7 +14,8 @@ export const MAX_RECOMMENDATIONS = 3;
 export const MAX_PAGE = 50;
 export const STALE_TRACKING_MS = 6 * 60 * 60 * 1000;
 export const ESCALATION_DELAY_MS = 48 * 60 * 60 * 1000;
-export const APPROVAL_TTL_MS = 30 * 60 * 1000;
+/** ActionRequest lifetime (docs/agents-security-mcp.md: 15 minutes). */
+export const APPROVAL_TTL_MS = 15 * 60 * 1000;
 export const LEAD_TIME_DAYS = 7;
 export const UNUSUAL_ORDER_MIN_OBS = 20;
 export const ANOMALY_WINDOW_MS = 5 * 60 * 1000;

@@ -179,9 +179,9 @@ describe.skipIf(!enabled)('supervisor graph with durable PostgreSQL checkpoints 
     expect(await orderRow(orderId)).toEqual({ status: 'CONFIRMED', version: 1 });
 
     const request = await createActionRequest(db, ben, {
-      tool: 'update_order',
-      resourceId: orderId,
-      canonicalArgs: { action: 'request_cancellation', expectedVersion: 1 },
+      orderId,
+      reasonCode: 'customer_request',
+      expectedVersion: 1,
       runId: run.id,
       idempotencyKey: `confirm-${run.id}`,
     });
@@ -212,9 +212,9 @@ describe.skipIf(!enabled)('supervisor graph with durable PostgreSQL checkpoints 
     const run = await start(ana, `Quiero solicitar la cancelación del pedido ${orderId}`);
     expect(await executeRun(worker(), ACME, run.id)).toMatchObject({ status: 'WAITING_HUMAN' });
     const request = await createActionRequest(db, ana, {
-      tool: 'update_order',
-      resourceId: orderId,
-      canonicalArgs: { action: 'request_cancellation', expectedVersion: 1 },
+      orderId,
+      reasonCode: 'customer_request',
+      expectedVersion: 1,
       runId: run.id,
       idempotencyKey: `confirm-${run.id}`,
     });

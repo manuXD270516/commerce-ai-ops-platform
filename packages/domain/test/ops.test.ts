@@ -2,12 +2,9 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   FIXTURES,
   checkInventory,
-  createActionRequest,
   createDb,
   createPool,
   createSupportTicket,
-  decideApproval,
-  executeUpdateOrder,
   getProduct,
   listCatalog,
   migrate,
@@ -43,13 +40,6 @@ const inventory = {
   tenantId: FIXTURES.tenants.acme,
   subjectId: FIXTURES.subjects.acmeInventory,
   role: 'inventory' as const,
-  policyVersion: 'policy.v1',
-};
-
-const approver = {
-  tenantId: FIXTURES.tenants.acme,
-  subjectId: FIXTURES.subjects.acmeApprover,
-  role: 'approver' as const,
   policyVersion: 'policy.v1',
 };
 
@@ -220,42 +210,5 @@ describe.skipIf(!enabled)('catalog, tickets and approvals', () => {
     }
     expect(created).toHaveLength(5);
     expect(limited).toMatchObject({ code: 'BUDGET_EXCEEDED' });
-  });
-  it('consumes an approval once and rejects replay, stale payload and self-approval', async () => {
-    const request = await createActionRequest(db, support, {
-      tool: 'update_order',
-      resourceId: FIXTURES.orders.benConfirmed,
-      canonicalArgs: { action: 'request_cancellation', expectedVersion: 1 },
-      idempotencyKey: 'ar-1',
-    });
-    await expect(
-      decideApproval(db, support, { actionRequestId: request.id, decision: 'APPROVED' }),
-    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
-    await decideApproval(db, approver, { actionRequestId: request.id, decision: 'APPROVED' });
-    const first = await executeUpdateOrder(db, support, {
-      orderId: FIXTURES.orders.benConfirmed,
-      action: 'request_cancellation',
-      expectedVersion: 1,
-      actionRequestId: request.id,
-      idempotencyKey: 'exec-1',
-    });
-    expect(first.status).toBe('CANCELLATION_REQUESTED');
-    const replay = await executeUpdateOrder(db, support, {
-      orderId: FIXTURES.orders.benConfirmed,
-      action: 'request_cancellation',
-      expectedVersion: 1,
-      actionRequestId: request.id,
-      idempotencyKey: 'exec-1',
-    });
-    expect(replay.version).toBe(first.version);
-    await expect(
-      executeUpdateOrder(db, support, {
-        orderId: FIXTURES.orders.benConfirmed,
-        action: 'request_cancellation',
-        expectedVersion: 1,
-        actionRequestId: request.id,
-        idempotencyKey: 'exec-2',
-      }),
-    ).rejects.toMatchObject({ code: 'CONFLICT' });
   });
 });

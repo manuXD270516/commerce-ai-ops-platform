@@ -324,6 +324,7 @@ export interface ActionRequestsTable {
   expires_at: Date;
   status: string;
   created_at: Generated<Date>;
+  decided_at: Date | null;
 }
 
 export interface ApprovalsTable {
@@ -335,6 +336,7 @@ export interface ApprovalsTable {
   reason: string | null;
   decided_at: Generated<Date>;
   expires_at: Date;
+  canonical_args_hash: string;
 }
 
 export interface ActionExecutionsTable {

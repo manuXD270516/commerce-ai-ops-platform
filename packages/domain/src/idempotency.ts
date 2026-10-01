@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 import type { ActorContext } from './access.js';
-import type { Kysely } from 'kysely';
+import { sql, type Kysely } from 'kysely';
 import type { Database } from './db.js';
 import { DomainError } from './errors.js';
 import { withUnitOfWork, type DomainTrx } from './uow.js';
@@ -18,7 +18,17 @@ export async function commitIdempotent<T>(
   fn: (trx: DomainTrx) => Promise<T>,
 ): Promise<T> {
   const hash = payloadHash(payload);
+  if (!/^[A-Za-z0-9._:-]{1,128}$/.test(idempotencyKey)) {
+    throw new DomainError('VALIDATION_ERROR', 'Idempotency-Key must have 1-128 safe characters', {
+      field: 'idempotency_key',
+    });
+  }
   return withUnitOfWork(db, ctx, async (trx) => {
+    // Serialize requests that share a key, so a concurrent retry waits and then replays the
+    // committed result instead of racing the first attempt.
+    await sql`SELECT pg_advisory_xact_lock(hashtextextended(${`${ctx.tenantId}|${ctx.subjectId}|${command}|${idempotencyKey}`}, 0))`.execute(
+      trx,
+    );
     const existing = await trx
       .selectFrom('idempotency_records')
       .selectAll()

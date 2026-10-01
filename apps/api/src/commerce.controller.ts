@@ -1,8 +1,5 @@
 import { Body, Controller, Get, Headers, Inject, Param, Post, Req, Res } from '@nestjs/common';
 import {
-  createActionRequest,
-  decideApproval,
-  executeUpdateOrder,
   getOrder,
   getShippingStatus,
   listAnomalies,
@@ -130,57 +127,5 @@ export class CommerceController {
     }
     res.status(201);
     return result.data;
-  }
-  @Post('action-requests')
-  async actionRequest(
-    @Req() req: Request,
-    @Headers('idempotency-key') idempotencyKey: string | undefined,
-    @Body()
-    body: {
-      resource_id: string;
-      expected_version: number;
-      run_id?: string;
-    },
-  ) {
-    const ctx = await this.domain.actorOf(req);
-    return createActionRequest(this.domain.requireDb(), ctx, {
-      tool: 'update_order',
-      resourceId: body.resource_id,
-      canonicalArgs: { action: 'request_cancellation', expectedVersion: body.expected_version },
-      runId: body.run_id,
-      idempotencyKey: idempotencyKey ?? 'missing',
-    });
-  }
-
-  @Post('approvals/:id/decision')
-  async decision(
-    @Req() req: Request,
-    @Param('id') id: string,
-    @Body() body: { decision: 'APPROVED' | 'REJECTED'; reason?: string },
-  ) {
-    const ctx = await this.domain.actorOf(req);
-    return decideApproval(this.domain.requireDb(), ctx, {
-      actionRequestId: id,
-      decision: body.decision,
-      reason: body.reason,
-    });
-  }
-
-  @Post('orders/:id/actions')
-  async orderAction(
-    @Req() req: Request,
-    @Param('id') id: string,
-    @Headers('idempotency-key') idempotencyKey: string | undefined,
-    @Body()
-    body: { action: 'request_cancellation'; expected_version: number; action_request_id: string },
-  ) {
-    const ctx = await this.domain.actorOf(req);
-    return executeUpdateOrder(this.domain.requireDb(), ctx, {
-      orderId: id,
-      action: body.action,
-      expectedVersion: body.expected_version,
-      actionRequestId: body.action_request_id,
-      idempotencyKey: idempotencyKey ?? 'missing',
-    });
   }
 }

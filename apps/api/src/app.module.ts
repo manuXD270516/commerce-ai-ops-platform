@@ -1,5 +1,6 @@
 import { Inject, Module, type DynamicModule, type OnApplicationShutdown } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
+import { ApprovalsController } from './approvals.controller.js';
 import type { ApiConfig } from './config.js';
 import { API_CONFIG } from './config.js';
 import { CatalogController } from './catalog.controller.js';
@@ -33,6 +34,7 @@ export class AppModule implements OnApplicationShutdown {
         CatalogController,
         CommerceController,
         RunsController,
+        ApprovalsController,
       ],
       providers: [
         { provide: API_CONFIG, useValue: config },
