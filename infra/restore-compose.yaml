@@ -1,12 +1,22 @@
-# Isolated restore rehearsal (M11 local substitute). Cloud/AWS is not provisioned in this environment.
-name: commerce-restore-rehearsal
+# Isolated restore rehearsal (M11): a throwaway PostgreSQL with no published port and no route to
+# the production-like stack. infra/scripts/recovery-drill.mjs restores a pg_dump of the prod-like
+# stack here, verifies it and removes it. Cloud restore (RDS snapshot) is not provisioned.
+name: commerce-ai-ops-restore
 
 services:
   postgres-restore:
     image: pgvector/pgvector:0.8.6-pg17-trixie@sha256:724a4041afdb1750446e3f6b5cfa8f3b0ac5a2cf538ddfa6bfee4f94c2fa85c6
     environment:
-      POSTGRES_USER: commerce
-      POSTGRES_PASSWORD: restore-only-not-a-secret
+      POSTGRES_USER: commerce_admin
       POSTGRES_DB: commerce
-    ports:
-      - '127.0.0.1:55433:5432'
+      # Throwaway instance reachable only through docker exec; not a secret.
+      POSTGRES_PASSWORD: restore-rehearsal-only
+    networks: [restore]
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U commerce_admin -d commerce']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+networks:
+  restore: { internal: true }

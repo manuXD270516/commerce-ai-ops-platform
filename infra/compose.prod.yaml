@@ -1,0 +1,179 @@
+# Production-like local stack (M11): immutable app images, TLS at the edge, private data services
+# and file-mounted secrets. It mirrors the cloud topology of docs/architecture.md §5 on one machine;
+# it is NOT a cloud deployment. Usage: pnpm prod:secrets && pnpm prod:up (see docs/runbook.md).
+name: commerce-ai-ops-prod
+
+x-app: &app
+  restart: unless-stopped
+  environment: &app-env
+    NODE_ENV: production
+    LOG_LEVEL: info
+    AUTH_ISSUER: http://127.0.0.1:3000/local-issuer
+    AUTH_JWKS_FILE: /run/secrets/jwks
+    DATABASE_URL_FILE: /run/secrets/database_url
+    REDIS_URL_FILE: /run/secrets/redis_url
+    PII_ENCRYPTION_KEY_FILE: /run/secrets/pii_key
+  secrets: [jwks, database_url, redis_url, pii_key]
+
+services:
+  postgres:
+    image: pgvector/pgvector:0.8.6-pg17-trixie@sha256:724a4041afdb1750446e3f6b5cfa8f3b0ac5a2cf538ddfa6bfee4f94c2fa85c6
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: commerce_admin
+      POSTGRES_DB: commerce
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    secrets: [postgres_password]
+    volumes:
+      - prod-postgres:/var/lib/postgresql/data
+    networks: [data]
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U commerce_admin -d commerce']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  redis:
+    image: redis:8.10.2-alpine3.23@sha256:3811787313eba226a2ef38658c6ccb91cd5e110edc89c37767de373120a0e5a0
+    restart: unless-stopped
+    # Coordination only; persistence disabled on purpose (recovery rebuilds work from PostgreSQL).
+    command:
+      [
+        'sh',
+        '-c',
+        'exec redis-server --requirepass "$$(cat /run/secrets/redis_password)" --appendonly no --save ""',
+      ]
+    secrets: [redis_password]
+    networks: [data]
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'redis-cli -a "$$(cat /run/secrets/redis_password)" --no-auth-warning ping | grep -q PONG',
+        ]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  migrate:
+    image: commerce-ai-ops/migrate:${IMAGE_TAG:-local}
+    build: { context: .., dockerfile: infra/docker/Dockerfile, target: migrate }
+    environment:
+      DATABASE_ADMIN_URL_FILE: /run/secrets/database_admin_url
+      DATABASE_MIGRATOR_URL_FILE: /run/secrets/database_migrator_url
+      DATABASE_URL_FILE: /run/secrets/database_url
+      PII_ENCRYPTION_KEY_FILE: /run/secrets/pii_key
+    secrets: [database_admin_url, database_migrator_url, database_url, pii_key]
+    networks: [data]
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  api:
+    <<: *app
+    image: commerce-ai-ops/api:${IMAGE_TAG:-local}
+    build: { context: .., dockerfile: infra/docker/Dockerfile, target: api }
+    environment:
+      <<: *app-env
+      API_HOST: 0.0.0.0
+      API_PORT: '3001'
+      RUN_EXECUTION: queue
+    networks: [edge, data]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3001/readyz').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))",
+        ]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+
+  worker:
+    <<: *app
+    image: commerce-ai-ops/worker:${IMAGE_TAG:-local}
+    build: { context: .., dockerfile: infra/docker/Dockerfile, target: worker }
+    environment:
+      <<: *app-env
+      WORKER_HOST: 0.0.0.0
+      WORKER_HEALTH_PORT: '3002'
+    # No published port and no edge network: the worker has no public entry point.
+    networks: [data]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3002/readyz').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))",
+        ]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+
+  mcp:
+    <<: *app
+    image: commerce-ai-ops/mcp:${IMAGE_TAG:-local}
+    build: { context: .., dockerfile: infra/docker/Dockerfile, target: mcp }
+    environment:
+      <<: *app-env
+      MCP_HOST: 0.0.0.0
+      MCP_PORT: '3003'
+    # Reachable only inside the data network (agents/clients deployed next to it), not via the edge.
+    networks: [data]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+  web:
+    restart: unless-stopped
+    image: commerce-ai-ops/web:${IMAGE_TAG:-local}
+    build: { context: .., dockerfile: infra/docker/Dockerfile, target: web }
+    environment:
+      NODE_ENV: production
+      API_BASE_URL: http://api:3001
+      AUTH_ISSUER: http://127.0.0.1:3000/local-issuer
+      AUTH_SIGNING_KEY_FILE: /run/secrets/issuer_private_jwk
+    secrets: [issuer_private_jwk]
+    networks: [edge]
+    depends_on:
+      api: { condition: service_healthy }
+
+  edge:
+    image: caddy:2.11.4-alpine@sha256:6aeddd44c3078b0f9a35206472a11420648a79c184603ef95957d0a20044cb2b
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:${PROD_HTTPS_PORT:-8443}:443'
+    volumes:
+      - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
+      - prod-caddy:/data
+    networks: [edge]
+    depends_on:
+      web: { condition: service_started }
+      api: { condition: service_healthy }
+
+networks:
+  edge: {}
+  # internal: no route to the outside world and no published ports for PostgreSQL or Redis.
+  data: { internal: true }
+
+volumes:
+  prod-postgres: {}
+  prod-caddy: {}
+
+secrets:
+  postgres_password: { file: ../.local/prod/postgres_password }
+  redis_password: { file: ../.local/prod/redis_password }
+  database_admin_url: { file: ../.local/prod/database_admin_url }
+  database_migrator_url: { file: ../.local/prod/database_migrator_url }
+  database_url: { file: ../.local/prod/database_url }
+  redis_url: { file: ../.local/prod/redis_url }
+  pii_key: { file: ../.local/prod/pii_key }
+  jwks: { file: ../.local/prod/jwks.json }
+  issuer_private_jwk: { file: ../.local/prod/issuer-private.jwk.json }

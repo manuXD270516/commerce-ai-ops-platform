@@ -1,0 +1,27 @@
+# TLS edge of the production-like stack. Locally it uses Caddy's internal CA; in cloud the load
+# balancer terminates TLS with a managed certificate instead (infra/terraform).
+{
+	auto_https disable_redirects
+}
+
+https://localhost {
+	tls internal
+	encode gzip
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+		-Server
+	}
+	# Public API under /v1 and its liveness probe; MCP and the worker are not routed at all.
+	handle /v1/* {
+		reverse_proxy api:3001
+	}
+	handle /healthz {
+		reverse_proxy api:3001
+	}
+	handle {
+		reverse_proxy web:3000
+	}
+}

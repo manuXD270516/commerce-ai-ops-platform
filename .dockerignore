@@ -1,0 +1,14 @@
+**/node_modules
+**/dist
+**/.next
+**/*.tsbuildinfo
+.git
+.local
+.env
+.env.*
+!.env.example
+.smoke
+evals/reports
+backups
+coverage
+**/*.log

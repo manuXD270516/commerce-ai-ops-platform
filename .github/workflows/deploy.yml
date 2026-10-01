@@ -1,0 +1,61 @@
+name: deploy
+
+# Manual cloud deployment of an already-tested commit (M11). It has never been run: it stays inert
+# until the repository variable DEPLOY_ENABLED is 'true' and AWS_ROLE_ARN / AWS_REGION point at an
+# account whose region, budget and OIDC trust were approved (docs/runbook.md §Cloud).
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Commit SHA to deploy (images are tagged with it, immutable)'
+        required: true
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: vars.DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    environment: demo
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      IMAGE_TAG: ${{ inputs.image_tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.image_tag }}
+      - name: AWS credentials via GitHub OIDC (no stored keys)
+        run: |
+          token=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sts.amazonaws.com" | jq -r .value)
+          creds=$(aws sts assume-role-with-web-identity --role-arn "${{ vars.AWS_ROLE_ARN }}" \
+            --role-session-name "deploy-${GITHUB_RUN_ID}" --web-identity-token "$token" \
+            --duration-seconds 3600 --query Credentials --output json)
+          {
+            echo "AWS_ACCESS_KEY_ID=$(jq -r .AccessKeyId <<<"$creds")"
+            echo "AWS_SECRET_ACCESS_KEY=$(jq -r .SecretAccessKey <<<"$creds")"
+            echo "AWS_SESSION_TOKEN=$(jq -r .SessionToken <<<"$creds")"
+          } >> "$GITHUB_ENV"
+          echo "::add-mask::$(jq -r .SecretAccessKey <<<"$creds")"
+      - name: Build and push immutable images
+        run: |
+          registry=$(aws sts get-caller-identity --query Account --output text).dkr.ecr.${AWS_REGION}.amazonaws.com
+          aws ecr get-login-password | docker login --username AWS --password-stdin "$registry"
+          for target in api worker mcp web migrate; do
+            docker build -f infra/docker/Dockerfile --target "$target" \
+              -t "$registry/commerce-ai-ops/$target:$IMAGE_TAG" .
+            docker push "$registry/commerce-ai-ops/$target:$IMAGE_TAG"
+          done
+      - name: Forward-only migrations (one-off task), then roll the services
+        run: |
+          # Task definitions reference the new tag through terraform (-var image_tag); ECS's
+          # deployment circuit breaker rolls back automatically if the new tasks fail health checks.
+          echo "terraform -chdir=infra/terraform/aws apply -var image_tag=$IMAGE_TAG ... (operator-run, see runbook)"
+          exit 1
