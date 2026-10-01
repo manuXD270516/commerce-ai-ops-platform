@@ -1,0 +1,13 @@
+{
+  "id": "recommendation",
+  "version": "0.1.0",
+  "kind": "synthetic",
+  "created": "2026-10-01",
+  "description": "M7 recommendation relevance. Ten Spanish customer queries over the commerce-domain@0.3.0 catalog with graded relevance (0-3) per SKU for nDCG@3; empty grades mean no SKU is eligible and the answer must report no candidates. Grades written by hand by a single author; not adjudicated by a second reviewer. Eligibility itself is checked independently in SQL by the suite, not from these grades.",
+  "files": [
+    {
+      "path": "queries.jsonl",
+      "sha256": "1a95deb26a7594c8e319482af2b771398be92a43ae1c17f92cd9ef7df6de2856"
+    }
+  ]
+}

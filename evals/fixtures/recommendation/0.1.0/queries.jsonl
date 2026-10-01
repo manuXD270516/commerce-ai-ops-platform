@@ -1,0 +1,10 @@
+{"id":"rec-01","suite":"recommendation","input":{"role":"customer","message":"Recomiéndame una notebook para programar por menos de USD 1.500"},"expected":{"grades":{"NB-DEV-32":3,"NB-DEV-16":2},"no_candidates":false}}
+{"id":"rec-02","suite":"recommendation","input":{"role":"customer","message":"Busco notebook de desarrollo hasta 1500 dólares"},"expected":{"grades":{"NB-DEV-32X":3,"NB-DEV-32":3,"NB-DEV-16":2},"no_candidates":false}}
+{"id":"rec-03","suite":"recommendation","input":{"role":"customer","message":"Quiero una portátil con 64 GB de RAM"},"expected":{"grades":{"NB-WS-64":3},"no_candidates":false}}
+{"id":"rec-04","suite":"recommendation","input":{"role":"customer","message":"Necesito un mouse inalámbrico"},"expected":{"grades":{"MOUSE-01":3},"no_candidates":false}}
+{"id":"rec-05","suite":"recommendation","input":{"role":"customer","message":"Notebook de 16GB"},"expected":{"grades":{"NB-DEV-16":3},"no_candidates":false}}
+{"id":"rec-06","suite":"recommendation","input":{"role":"customer","message":"Laptop por menos de USD 1.000"},"expected":{"grades":{},"no_candidates":true}}
+{"id":"rec-07","suite":"recommendation","input":{"role":"customer","message":"Notebook de 64GB por menos de USD 1.500"},"expected":{"grades":{},"no_candidates":true}}
+{"id":"rec-08","suite":"recommendation","input":{"role":"customer","message":"Laptop para Docker y máquinas virtuales"},"expected":{"grades":{"NB-WS-64":3,"NB-DEV-32":2,"NB-DEV-32X":2,"NB-DEV-16":1},"no_candidates":false}}
+{"id":"rec-09","suite":"recommendation","input":{"role":"customer","message":"Notebook liviana y barata"},"expected":{"grades":{"NB-DEV-16":3,"NB-DEV-32":1,"NB-DEV-32X":1,"NB-WS-64":0},"no_candidates":false}}
+{"id":"rec-10","suite":"recommendation","input":{"role":"customer","message":"Computadora con 32GB para compilar por menos de 1500 dólares"},"expected":{"grades":{"NB-DEV-32":3},"no_candidates":false}}

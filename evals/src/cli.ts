@@ -11,6 +11,7 @@ import {
   type EvalReport,
   type GateDefinition,
 } from './report.js';
+import { runRecommendationSuite } from './recommendation-suite.js';
 import { runRetrievalSuites } from './retrieval-suite.js';
 import { runRouterSuites } from './router-suite.js';
 import { runExactMatchSuite } from './suites.js';
@@ -58,11 +59,20 @@ const reports: EvalReport[] = [
 reports.push(...(await runRouterSuites(join(root, 'fixtures'))));
 
 // Suites against real code and the local database; skipped (and said so) without a database.
-const { DATABASE_ADMIN_URL: adminUrl, DATABASE_URL: runtimeUrl } = process.env;
-if (adminUrl && runtimeUrl) {
-  reports.push(...(await runRetrievalSuites(join(root, 'fixtures'), { adminUrl, runtimeUrl })));
+const {
+  DATABASE_ADMIN_URL: adminUrl,
+  DATABASE_MIGRATOR_URL: migratorUrl,
+  DATABASE_URL: runtimeUrl,
+  PII_ENCRYPTION_KEY: piiKey,
+} = process.env;
+if (adminUrl && migratorUrl && runtimeUrl && piiKey) {
+  const fixtures = join(root, 'fixtures');
+  reports.push(...(await runRetrievalSuites(fixtures, { adminUrl, runtimeUrl })));
+  reports.push(
+    await runRecommendationSuite(fixtures, { adminUrl, migratorUrl, runtimeUrl, piiKey }),
+  );
 } else {
-  console.log('retrieval suites skipped: DATABASE_ADMIN_URL and DATABASE_URL are not set');
+  console.log('database suites skipped: DATABASE_* URLs and PII_ENCRYPTION_KEY are not set');
 }
 
 let exitCode = 0;
