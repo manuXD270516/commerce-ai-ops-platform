@@ -29,6 +29,18 @@ function urls(): MigrateUrls {
   return { adminUrl, migratorUrl, runtimeUrl };
 }
 
+async function hasTenants(migratorUrl: string): Promise<boolean> {
+  const pool = createPool(migratorUrl);
+  try {
+    const { rows } = await pool.query<{ n: number }>(
+      'SELECT count(*)::int AS n FROM commerce.tenants',
+    );
+    return (rows[0]?.n ?? 0) > 0;
+  } finally {
+    await pool.end();
+  }
+}
+
 loadEnv();
 const command = process.argv[2] ?? 'migrate';
 if (command === 'migrate') {
@@ -37,6 +49,12 @@ if (command === 'migrate') {
 } else if (command === 'seed') {
   const key = process.env.PII_ENCRYPTION_KEY;
   if (!key) throw new Error('PII_ENCRYPTION_KEY is required');
+  // The seed resets the synthetic fixtures. Deployed stacks pass --if-empty so a re-run of the
+  // migration job (restart, redeploy, dependency start) never wipes accumulated state.
+  if (process.argv.includes('--if-empty') && (await hasTenants(urls().migratorUrl))) {
+    console.log(JSON.stringify({ seeded: false, reason: 'database already has tenants' }));
+    process.exit(0);
+  }
   await seedCommerceDomain(urls().migratorUrl, key);
   // The corpus goes through the runtime role and the ingestion service identity, like any ingest.
   const db = createDb(createPool(urls().runtimeUrl));

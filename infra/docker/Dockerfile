@@ -40,7 +40,8 @@ WORKDIR /repo/apps/web
 EXPOSE 3000
 CMD ["node", "node_modules/next/dist/bin/next", "start", "--port", "3000", "--hostname", "0.0.0.0"]
 
-# One-shot job: forward-only migrations with the migrator role, then the synthetic demo seed.
+# One-shot job: forward-only migrations with the migrator role, then the synthetic demo seed only
+# into an empty database (re-running the job never resets existing data).
 FROM runtime AS migrate
 WORKDIR /repo/packages/domain
-CMD ["sh", "-c", "node dist/cli.js migrate && node dist/cli.js seed"]
+CMD ["sh", "-c", "node dist/cli.js migrate && node dist/cli.js seed --if-empty"]

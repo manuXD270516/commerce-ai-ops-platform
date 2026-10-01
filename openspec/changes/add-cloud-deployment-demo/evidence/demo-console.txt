@@ -1,0 +1,21 @@
+$ node infra/scripts/demo.mjs
+PASS edge serves the api over TLS with a trusted local CA — https://localhost:8443
+PASS edge sets HSTS and nosniff
+PASS mcp is not reachable through the edge — POST /mcp -> 404 from the console, not the MCP server
+PASS api rejects calls without a bearer token
+PASS console sign-in over TLS sets a Secure, HttpOnly, SameSite=Strict cookie
+PASS case 1: order status answered with recorded evidence — COMPLETED/ANSWERED in 1257 ms
+PASS case 2: recommendation within budget — COMPLETED/ANSWERED in 467 ms
+PASS case 3: inventory discrepancy explained for the operator — COMPLETED/ANSWERED in 442 ms
+PASS case 3 is read-only: no stock balance changed
+PASS approval: the run stops in WAITING_HUMAN with a proposal — order CONFIRMED:1, expected_version 1
+PASS approval: the confirmation creates one PENDING request — 201 PENDING
+PASS replay: repeating the confirmation with the same idempotency key returns the same request
+PASS approval: the requester cannot approve — 403 FORBIDDEN
+PASS approval: a different approver approves — 201 APPROVED
+PASS approval: the run resumes and reports the action as requested — COMPLETED/ACTION_EXECUTED
+PASS approval: the order is CANCELLATION_REQUESTED, with exactly one execution
+PASS approval: the trail shows request, approval, execution and audit
+PASS replay: Last-Event-ID resumes after the given event and starts no run — 3 events after seq 1
+
+Report: D:\projects\repos-ia-exp\commerce-ai-ops-platform\.smoke\m11-demo-20261001T220134\m11-demo-20261001T220134-7c27.json

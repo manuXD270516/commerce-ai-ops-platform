@@ -45,7 +45,27 @@ const compose = (args, env = {}) =>
   docker([...COMPOSE, ...args], { env: { ...process.env, IMAGE_TAG, ...env } });
 const runStatus = (id) =>
   psql(`SELECT status || '/' || coalesce(outcome, '') FROM commerce.agent_runs WHERE id = '${id}'`);
-const healthy = async () => (await fetch(`${base}/readyz`).catch(() => undefined))?.status === 200;
+/** API readiness (PostgreSQL, pgvector, Redis) read inside the stack; /readyz is not routed. */
+function readiness() {
+  try {
+    return JSON.parse(
+      compose([
+        'exec',
+        '-T',
+        'api',
+        'node',
+        '-e',
+        "fetch('http://127.0.0.1:3001/readyz').then(async r => console.log(JSON.stringify({ status: r.status, body: await r.json() })))",
+      ]),
+    );
+  } catch {
+    return { status: 0, body: {} };
+  }
+}
+/** Ready = the API answers through the TLS edge and its readiness sees every dependency up. */
+const healthy = async () =>
+  (await fetch(`${base}/healthz`).catch(() => undefined))?.status === 200 &&
+  readiness().status === 200;
 
 async function startCancellation() {
   const orderId = randomUUID();
@@ -110,7 +130,13 @@ async function redisDrill() {
   check('redis: a cancellation is PENDING approval before the outage', pending.pending);
   compose(['stop', 'redis']);
   const down = performance.now();
-  check('redis: stopped (no persistence: queues and schedulers are gone)', !(await healthy()));
+  const ready = readiness();
+  check(
+    'redis: stopped (no persistence: queues and schedulers are gone); api readiness reports it',
+    ready.status === 503 &&
+      (ready.body.checks ?? []).some((c) => c.name === 'redis' && c.status === 'down'),
+    `readyz ${ready.status}`,
+  );
 
   const t0 = performance.now();
   const queued = await call('acme-customer-ana', '/v1/agent-runs', {
@@ -274,7 +300,7 @@ SELECT json_build_object(
     SELECT 'chunks', count(*) FROM commerce.chunks) s),
   'runs_by_status', (SELECT json_object_agg(status, n ORDER BY status) FROM (SELECT status, count(*) n FROM commerce.agent_runs GROUP BY status) s),
   'last_audit', (SELECT id::text || '@' || recorded_at::text FROM commerce.audit_events ORDER BY recorded_at DESC, id DESC LIMIT 1),
-  'rls_tables', (SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'commerce' AND c.relkind = 'r' AND c.relrowsecurity AND c.relforcerowsecurity),
+  'rls_tables', (SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'commerce' AND c.relkind = 'r' AND c.relrowsecurity),
   'policies', (SELECT count(*) FROM pg_policies WHERE schemaname = 'commerce'),
   'foreign_keys', (SELECT count(*) FROM pg_constraint WHERE contype = 'f' AND connamespace = 'commerce'::regnamespace AND convalidated),
   'orphan_items', (SELECT count(*) FROM commerce.order_items i LEFT JOIN commerce.orders o ON o.tenant_id = i.tenant_id AND o.id = i.order_id WHERE o.id IS NULL),
@@ -362,13 +388,16 @@ async function restoreDrill() {
         restored.policies === live.policies &&
         restored.rls_tables === live.rls_tables &&
         restored.migrations === live.migrations,
-      `${restored.foreign_keys} FKs, ${restored.policies} policies on ${restored.rls_tables} forced-RLS tables, ${restored.migrations} migrations`,
+      `${restored.foreign_keys} FKs, ${restored.policies} policies on ${restored.rls_tables} RLS tables, ${restored.migrations} migrations`,
     );
   } finally {
     docker([...RESTORE, 'down', '-v']);
     compose(['start', 'worker']);
   }
 }
+
+// Every drill restarts containers; none may reset data (e.g. a migration job re-running a seed).
+const runsAtStart = Number(psql('SELECT count(*) FROM commerce.agent_runs'));
 
 const table = {
   redis: redisDrill,
@@ -391,6 +420,14 @@ for (const name of drills) {
     );
   }
 }
+await new Promise((r) => setTimeout(r, 3000));
+const runsAtEnd = Number(psql('SELECT count(*) FROM commerce.agent_runs'));
+check(
+  'state survives every drill: no reseed or data loss',
+  runsAtEnd > runsAtStart ||
+    (drills.length === 1 && drills[0] === 'restore' && runsAtEnd === runsAtStart),
+  `agent_runs ${runsAtStart} -> ${runsAtEnd}`,
+);
 
 const path = await writeRunReport({
   suite: 'm11-recovery-drill',

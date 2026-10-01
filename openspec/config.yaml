@@ -3,8 +3,11 @@ schema: spec-driven
 context: |
   Proyecto: commerce-ai-ops-platform. Idioma: español.
   Fase actual: M0 a M3 archivados el 2026-09-29 y M4–M9 el 2026-10-01; un change por milestone.
+  M10 y M11 implementados y medidos, abiertos (release con 2 gates de calidad en FAIL; adjudicación
+  humana pendiente; despliegue cloud pendiente de autorización y host de costo cero).
   El usuario autorizó avanzar M2–M11 (2026-09-29): sin claves de IA, modelos locales o
   simulados etiquetados SIMULATED; M11 se prueba contra un emulador AWS open-source (Floci).
+  Ese emulador no se instaló: M11 se verificó con un stack production-like en Docker local.
   Arquitectura viva: docs/architecture.md; alcance: docs/mvp-scope.md.
   MVP: Next.js, NestJS modular, PostgreSQL + pgvector, Redis y LangGraph JS.
   PostgreSQL es la fuente de verdad; reglas y autorización determinísticas.

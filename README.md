@@ -2,57 +2,64 @@
 
 Plataforma de operaciones e-commerce con APIs de dominio, búsqueda híbrida, workflows asistidos por IA y acciones auditables mediante MCP.
 
-**Estado: M0 (bootstrap), M1 (modelo de dominio), M2 (API de catálogo con identidad verificada), M3 (órdenes, inventario y detector de anomalías), M4 (recuperación híbrida versionada), M5 (servidor MCP con ocho tools clasificadas), M6 (router y ejecución durable con LangGraph) M7 (especialistas con evidencia y escalamiento versionado) M8 (aprobación humana con consumo atómico) y M9 (consola operacional con E2E por rol) completados; M10–M11 en curso.** Existe el monorepo con web, API, worker y servidor MCP, entorno local, CI, harness de evals y tracing, y un modelo relacional multi-tenant con RLS, snapshots, outbox, auditoría e idempotencia (`pnpm db:migrate`, `pnpm db:seed`). Hay código preliminar de milestones posteriores que aún no está verificado contra sus changes. No hay llamadas a modelos de terceros ni recursos cloud: los embeddings son un hashing local determinístico (`local-hash-v1`) y los modelos ONNX abiertos quedan como opción apagada. La página web es un scaffold técnico, no la consola de M9. Datos de demostración sintéticos, USD, una región logística y dos tenants de prueba para verificar aislamiento. Transportistas y notificaciones serán simulados y visibles como tales. PostgreSQL contendrá datos relacionales operativos; las respuestas no dependerán de hechos inventados por el modelo.
+## Estado (2026-10-01)
+
+- **Completados y archivados (M0–M9):** bootstrap, modelo de dominio multi-tenant con RLS, API de catálogo, órdenes/inventario/anomalías, recuperación híbrida versionada, servidor MCP con ocho tools, router y ejecución durable con LangGraph, especialistas con evidencia, aprobación humana con consumo atómico y consola operacional con E2E por rol.
+- **M10 evaluaciones — implementado, no cerrado.** 300 casos (`ops-eval@1.0.0`) ejecutados de extremo a extremo, tres repeticiones, gates de release, carga de 20 min, auditoría de PII, trazas y retención. La release sobre el holdout **falla 2 de 21 gates de calidad**: routing macro-F1 0,936 (gate 0,95) y MRR@5 0,792 (gate 0,8). Ningún gate de seguridad falla (0 efectos y 0 lecturas indebidas). No se re-ajustó contra el holdout. Las etiquetas no tienen adjudicación de dos revisores. Detalle: [verification](openspec/changes/add-evaluation-gates/verification.md).
+- **M11 despliegue — local production-like, cloud pendiente.** Imágenes inmutables, TLS en el borde, secretos como archivos y red de datos privada; demo de 3 casos + aprobación + replay (18/18) y ensayos de Redis, restart, rollback y backup/restore aislado (21/21) con tiempos observados. El Terraform de AWS y el workflow de deploy están escritos pero **no aplicados, no validados y nunca ejecutados**: esperan autorización del dueño, región/presupuesto/OIDC y un host de costo cero. Detalle: [verification](openspec/changes/add-cloud-deployment-demo/verification.md).
+- **CI:** el workflow existe pero GitHub Actions está bloqueado por billing; toda la evidencia es de ejecuciones locales.
+
+Sin llamadas a modelos ni embeddings de terceros: embeddings por hashing local determinístico (`local-hash-v1`) y redacción por plantilla (`template-synth.v1`), etiquetada SIMULATED en reportes y UI; los proveedores reales quedan como opción apagada. Por eso latencia de workflow, tokens y costo son SIMULATED y no certifican un modelo real. Datos sintéticos, USD, dos tenants; transportistas y notificaciones simulados y visibles como tales.
 
 ## Documentación
 
 - [Alcance del MVP](docs/mvp-scope.md)
-- [Arquitectura, bounded contexts y decisiones](docs/architecture.md) (revisión previa a M0 en §6)
+- [Arquitectura, bounded contexts y decisiones](docs/architecture.md)
 - [Modelo de datos](docs/data-model.md)
 - [Agentes, permisos MCP y seguridad](docs/agents-security-mcp.md)
 - [RAG y evaluaciones](docs/rag-evals.md)
+- [Runbook](docs/runbook.md): stack production-like, rollback, Redis, backup/restore, retención, plan cloud
 - [Roadmap M0–M11](docs/roadmap.md), con el change de OpenSpec de cada milestone
-- Changes activos en [openspec/changes](openspec/changes) (uno por milestone, con tasks.md y verification.md); M0 archivado en `openspec/changes/archive/`, specs promovidas en [openspec/specs](openspec/specs)
+- Changes en [openspec/changes](openspec/changes) (M10 y M11 abiertos), archivados en `openspec/changes/archive/`, specs promovidas en [openspec/specs](openspec/specs)
 
 ## Estructura
 
 ```text
-apps/web                  Next.js 16: página de estado y /api/status (diagnóstico web → API)
-apps/api                  NestJS 12: /healthz, /readyz, /v1/status
-apps/worker               BullMQ: cola de diagnóstico sin payload de negocio
+apps/web                  Next.js 16: consola operacional (BFF, sesión firmada, SSE, aprobaciones)
+apps/api                  NestJS 12: catálogo, órdenes, runs de agentes, aprobaciones, tickets
+apps/worker               BullMQ: runs de agentes, recuperación desde PostgreSQL, detector de anomalías
 apps/commerce-mcp-server  MCP Streamable HTTP autenticado (SDK 1.31.0, protocolo 2025-11-25), ocho tools
-packages/contracts        JSON Schema 2020-12 (incluidos los inputs de tools), OpenAPI 3.1, tipos, correlation id
+packages/contracts        JSON Schema 2020-12, OpenAPI 3.1, tipos, tokens
 packages/tools            Enforcement único de tools: schema, scopes, consentimiento, auditoría
-packages/domain           Servicios de aplicación desde M1 (sin frameworks ni IA)
-packages/ai               Adaptadores de proveedor desde M6 (hoy sólo ProviderMode)
+packages/domain           Servicios de dominio, migraciones, RLS, retención
+packages/ai               Router, grafo LangGraph, especialistas, embeddings locales
 packages/telemetry        Logs JSON, correlación, OpenTelemetry y probes
-evals                     Fixtures versionadas, gates EXPECTED y reportes
-infra                     Compose local y smoke
+evals                     Datasets versionados, suites, gates de release, PII, dashboard
+infra                     Compose local y production-like, Dockerfile, smoke, carga, demo, drills, Terraform
 ```
 
 ## Desarrollo local
 
-Requisitos: Node 22.23.1 (`.nvmrc`), pnpm 12.4.2 y Docker con Compose. Desde un clone limpio:
+Requisitos: Node 22.23.1 (`.nvmrc`), pnpm 12.4.2 y Docker con Compose.
 
 ```powershell
 pnpm install --frozen-lockfile
 Copy-Item .env.example .env          # Linux/macOS: cp .env.example .env
 pnpm run auth:init                   # claves del issuer local en .local/auth (git-ignored)
 pnpm run infra:up:tracing            # PostgreSQL + pgvector, Redis y Jaeger en 127.0.0.1
-pnpm run verify                      # lint, formato, typecheck, build, tests (contra la BD), contratos, evals
-pnpm run db:migrate                  # schema y roles; db:seed carga los fixtures sintéticos
-pnpm run db:seed
-pnpm run openspec:validate
-pnpm run smoke -- --tracing          # arranca las cuatro apps y verifica la correlación
+pnpm run db:migrate; pnpm run db:seed
+pnpm run verify                      # lint, formato, typecheck, build, tests, contratos, evals de dev
+pnpm run smoke -- --tracing          # arranca las cuatro apps y verifica correlación, MCP y un run
+pnpm run e2e                         # Playwright por rol
+pnpm run evals:release               # holdouts ×3 y gates (sale con 1 si alguno falla)
+pnpm run load                        # 20 min de carga local
 pnpm run infra:down
 ```
 
-`pnpm run infra:up` levanta sólo PostgreSQL y Redis; en ese caso ejecutar `pnpm run smoke` sin `--tracing`. Para arrancar las apps a mano tras `pnpm run build`: `pnpm start:api`, `pnpm start:worker`, `pnpm start:mcp` y `pnpm start:web` (http://127.0.0.1:3000). Los reportes se escriben en `evals/reports/` y `.smoke/`, ambos ignorados por git.
+Stack production-like (ver [runbook](docs/runbook.md)): `pnpm prod:secrets`, `pnpm prod:up`, `pnpm prod:demo`, `pnpm prod:drill`, `pnpm prod:down`. Los reportes se escriben en `evals/reports/` y `.smoke/` (ignorados por git); los de la última verificación están copiados en `openspec/changes/*/evidence/`.
 
-La API y el servidor MCP sólo aceptan `Authorization: Bearer <JWT ES256>` firmado por el issuer configurado (`AUTH_ISSUER`, `AUTH_JWKS_FILE`), con audiencias separadas `commerce-api` y `commerce-mcp`. El tenant sale del token y el rol de la membership en la BD. En local, la consola web firma tokens de corta vida para los usuarios de demostración; en cloud se sustituye por un proveedor OIDC.
+La API y el servidor MCP sólo aceptan `Authorization: Bearer <JWT ES256>` del issuer configurado, con audiencias separadas `commerce-api` y `commerce-mcp`. El tenant sale del token y el rol de la membership en la BD. La consola firma tokens de corta vida para usuarios de demostración; no es un IdP de producción.
 
 ## Flujo de trabajo
 
-Cada feature sigue proposal → spec → design → tasks → implementation → verification, con un change por milestone. Cualquier variación funcional requiere actualizar estos artefactos antes de implementar; nuevas capacidades requieren su propio change. Los delta specs permanecen en el change hasta verificar y archivar.
-
-Los umbrales de evaluación son objetivos propuestos (EXPECTED), no resultados medidos.
+Cada feature sigue proposal → spec → design → tasks → implementation → verification, con un change por milestone; un change se archiva sólo cuando todas sus tareas tienen evidencia. Los umbrales de `evals/gates/gates.v0.json` son objetivos de demo; los valores observados y su estado (MEASURED/SIMULATED) están en los reportes de release.

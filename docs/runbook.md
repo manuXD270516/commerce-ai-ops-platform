@@ -68,7 +68,17 @@ Backup lógico: `docker compose -f infra/compose.prod.yaml exec -T postgres pg_d
 
 ## 9. Tiempos observados
 
-Ver `openspec/changes/add-cloud-deployment-demo/verification.md` (valores y reportes de la última ejecución). No son SLA.
+Última ejecución (2026-10-01, una observación cada uno; detalle en `openspec/changes/add-cloud-deployment-demo/verification.md`). No son SLA.
+
+| Operación | Observado |
+|---|---|
+| Build de las 5 imágenes (en frío) / `prod:up` con imágenes listas | 238 s / 12 s |
+| Run de demo de extremo a extremo (3 casos) | 0,44–1,26 s |
+| Aceptar un run con Redis caído | 1,5 s (timeout de dispatch) |
+| Recuperación de trabajo tras volver Redis | 1,3 s |
+| Restart api + worker hasta ready | 4,6 s |
+| Rollback: detectar release rota / volver al tag anterior | 2,7 s / 4,7 s |
+| Backup (pg_dump, 187 KiB) / restore aislado completo | 0,46 s / 4,9 s |
 
 ## Cloud (pendiente de autorización)
 
