@@ -1,0 +1,35 @@
+$ node infra/scripts/k8s-local.mjs
+PASS k3s cluster ready — rancher/k3s:v1.33.1-k3s1
+PASS app images imported into the cluster — 769 MiB
+PASS postgres and redis ready
+PASS migration job completes (migrate + seed --if-empty) — {"seeded":"commerce-domain@0.3.0","knowledge":{"corpus":"knowledge@0.1.0","versions":14,"new":14}}
+PASS api, worker, mcp and web roll out with passing probes — true true true true
+PASS ingress serves the api over TLS — https://localhost:9443
+PASS network policy: web cannot reach postgres, api can — web=error ECONNREFUSED api=open
+PASS edge serves the api over TLS with a trusted local CA — https://localhost:9443
+PASS edge sets HSTS and nosniff
+PASS mcp is not reachable through the edge — POST /mcp -> 404 from the console, not the MCP server
+PASS api rejects calls without a bearer token
+PASS console sign-in over TLS sets a Secure, HttpOnly, SameSite=Strict cookie
+PASS case 1: order status answered with recorded evidence — COMPLETED/ANSWERED in 491 ms
+PASS case 2: recommendation within budget — COMPLETED/ANSWERED in 449 ms
+PASS case 3: inventory discrepancy explained for the operator — COMPLETED/ANSWERED in 446 ms
+PASS case 3 is read-only: no stock balance changed
+PASS approval: the run stops in WAITING_HUMAN with a proposal — order CONFIRMED:1, expected_version 1
+PASS approval: the confirmation creates one PENDING request — 201 PENDING
+PASS replay: repeating the confirmation with the same idempotency key returns the same request
+PASS approval: the requester cannot approve — 403 FORBIDDEN
+PASS approval: a different approver approves — 201 APPROVED
+PASS approval: the run resumes and reports the action as requested — COMPLETED/ACTION_EXECUTED
+PASS approval: the order is CANCELLATION_REQUESTED, with exactly one execution
+PASS approval: the trail shows request, approval, execution and audit
+PASS replay: Last-Event-ID resumes after the given event and starts no run — 3 events after seq 1
+
+Report: D:\projects\repos-ia-exp\commerce-ai-ops-platform\.smoke\m11-demo-k8s-20261001T234026\m11-demo-k8s-20261001T234026-aaaa.json
+PASS prod demo checks pass against the cluster (see m11-demo-k8s report)
+PASS bad release never becomes ready; previous pods keep serving
+PASS kubectl rollout undo restores the previous image — commerce-ai-ops/api:local
+PASS re-running the migration job keeps existing data — {"seeded":false,"reason":"database already has tenants"}; agent_runs 4 -> 4
+cluster commerce-ai-ops-k3s deleted
+
+Report: D:\projects\repos-ia-exp\commerce-ai-ops-platform\.smoke\m11-k8s-local-20261001T233643\m11-k8s-local-20261001T233643-ecf5.json

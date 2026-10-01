@@ -2,7 +2,7 @@ schema: spec-driven
 
 context: |
   Proyecto: commerce-ai-ops-platform. Idioma: español.
-  Fase actual: M0 a M3 archivados el 2026-09-29 y M4–M10 el 2026-10-01; un change por milestone.
+  Fase actual: M0 a M3 archivados el 2026-09-29 y M4–M11 el 2026-10-01; un change por milestone.
   M10 archivado con excepciones aceptadas por el usuario (2026-10-01): 2 gates de calidad en FAIL
   en holdout y adjudicación humana de etiquetas abierta. M11 redirigido a AKS (2026-10-01) con
   alcance "listo para desplegar": aplicar en Azure requiere autorización explícita del usuario.

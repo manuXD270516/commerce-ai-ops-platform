@@ -1,12 +1,12 @@
 {
   "schema_version": "0.1.0",
   "run": {
-    "id": "m11-demo-20261001T220134-7c27",
-    "suite": "m11-demo",
-    "started_at": "2026-10-01T22:01:34.649Z",
-    "finished_at": "2026-10-01T22:01:41.724Z",
+    "id": "m11-demo-k8s-20261001T234026-aaaa",
+    "suite": "m11-demo-k8s",
+    "started_at": "2026-10-01T23:40:26.343Z",
+    "finished_at": "2026-10-01T23:40:31.615Z",
     "commit": {
-      "sha": "6d5d7cd563153a5fbbe53ca6910c70d5ffead882",
+      "sha": "17a10867cc03eceddab4c9d64e880f65af19a906",
       "dirty": true
     },
     "environment": {
@@ -18,12 +18,12 @@
     "target": {
       "id": "prod-like-local",
       "mode": "real",
-      "description": "compose.prod.yaml behind Caddy TLS at https://localhost:8443; deterministic template provider (no LLM)"
+      "description": "k8s overlays/local (k3s) behind Traefik ingress TLS at https://localhost:9443; deterministic template provider (no LLM)"
     }
   },
   "results": [
     {
-      "metric": "m11_demo_checks_passed",
+      "metric": "m11_demo_k8s_checks_passed",
       "dimension": "deployment",
       "unit": "ratio",
       "source": "infra/scripts/demo.mjs",
@@ -42,7 +42,7 @@
       "dimension": "latency",
       "unit": "ms",
       "source": "infra/scripts/demo.mjs",
-      "value": 1257,
+      "value": 491,
       "denominator": 1,
       "notes": "One observation on one workstation (Docker Desktop); illustrative, not an SLA.",
       "status": "MEASURED"
@@ -52,7 +52,7 @@
       "dimension": "latency",
       "unit": "ms",
       "source": "infra/scripts/demo.mjs",
-      "value": 467,
+      "value": 449,
       "denominator": 1,
       "notes": "One observation on one workstation (Docker Desktop); illustrative, not an SLA.",
       "status": "MEASURED"
@@ -62,7 +62,7 @@
       "dimension": "latency",
       "unit": "ms",
       "source": "infra/scripts/demo.mjs",
-      "value": 442,
+      "value": 446,
       "denominator": 1,
       "notes": "One observation on one workstation (Docker Desktop); illustrative, not an SLA.",
       "status": "MEASURED"
@@ -72,7 +72,7 @@
       "dimension": "latency",
       "unit": "ms",
       "source": "infra/scripts/demo.mjs",
-      "value": 1396,
+      "value": 1270,
       "denominator": 1,
       "notes": "One observation on one workstation (Docker Desktop); illustrative, not an SLA.",
       "status": "MEASURED"

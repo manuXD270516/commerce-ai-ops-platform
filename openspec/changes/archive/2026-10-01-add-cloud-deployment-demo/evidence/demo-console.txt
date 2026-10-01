@@ -4,9 +4,9 @@ PASS edge sets HSTS and nosniff
 PASS mcp is not reachable through the edge — POST /mcp -> 404 from the console, not the MCP server
 PASS api rejects calls without a bearer token
 PASS console sign-in over TLS sets a Secure, HttpOnly, SameSite=Strict cookie
-PASS case 1: order status answered with recorded evidence — COMPLETED/ANSWERED in 1257 ms
-PASS case 2: recommendation within budget — COMPLETED/ANSWERED in 467 ms
-PASS case 3: inventory discrepancy explained for the operator — COMPLETED/ANSWERED in 442 ms
+PASS case 1: order status answered with recorded evidence — COMPLETED/ANSWERED in 494 ms
+PASS case 2: recommendation within budget — COMPLETED/ANSWERED in 462 ms
+PASS case 3: inventory discrepancy explained for the operator — COMPLETED/ANSWERED in 441 ms
 PASS case 3 is read-only: no stock balance changed
 PASS approval: the run stops in WAITING_HUMAN with a proposal — order CONFIRMED:1, expected_version 1
 PASS approval: the confirmation creates one PENDING request — 201 PENDING
@@ -18,4 +18,4 @@ PASS approval: the order is CANCELLATION_REQUESTED, with exactly one execution
 PASS approval: the trail shows request, approval, execution and audit
 PASS replay: Last-Event-ID resumes after the given event and starts no run — 3 events after seq 1
 
-Report: D:\projects\repos-ia-exp\commerce-ai-ops-platform\.smoke\m11-demo-20261001T220134\m11-demo-20261001T220134-7c27.json
+Report: D:\projects\repos-ia-exp\commerce-ai-ops-platform\.smoke\m11-demo-20261001T233530\m11-demo-20261001T233530-3b88.json

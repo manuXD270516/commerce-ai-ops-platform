@@ -562,8 +562,8 @@ metadata:
   name: migrate
   namespace: commerce
 spec:
-  activeDeadlineSeconds: 600
-  backoffLimit: 2
+  activeDeadlineSeconds: 900
+  backoffLimit: 6
   template:
     metadata:
       labels:

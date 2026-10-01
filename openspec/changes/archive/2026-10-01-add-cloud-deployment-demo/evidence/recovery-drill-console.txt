@@ -3,30 +3,30 @@ $ node infra/scripts/recovery-drill.mjs
 == redis: coordination state lost ==
 PASS redis: a cancellation is PENDING approval before the outage
 PASS redis: stopped (no persistence: queues and schedulers are gone); api readiness reports it — readyz 503
-PASS redis down: the api still records a run durably and answers 202 — 202 in 1519 ms
+PASS redis down: the api still records a run durably and answers 202 — 202 in 1516 ms
 PASS redis down: the approver decision is stored — 201
 PASS redis down: writes do not bypass the rate limit (enforced in PostgreSQL) — tickets in the last hour 0 -> 5, limit 5
 PASS redis down: nothing executed yet
-PASS redis back: queued and approved work is rebuilt from PostgreSQL — COMPLETED/ANSWERED, COMPLETED/ACTION_EXECUTED after 1287 ms
+PASS redis back: queued and approved work is rebuilt from PostgreSQL — COMPLETED/ANSWERED, COMPLETED/ACTION_EXECUTED after 5414 ms
 PASS redis back: one approval, exactly one execution, order changed once
 PASS redis back: each run has a single completed event
 PASS redis back: the worker re-registered its schedulers
 
 == restart: api and worker ==
-PASS restart: api ready again through the edge — 4554 ms
+PASS restart: api ready again through the edge — 3438 ms
 PASS restart: a new run completes after the restart
 
 == rollback: broken api release ==
 PASS rollback: the health gate rejects the broken release
-PASS rollback: the previous immutable tag serves again — commerce-ai-ops/api:local in 4670 ms
+PASS rollback: the previous immutable tag serves again — commerce-ai-ops/api:local in 4842 ms
 PASS rollback: data intact after rollback
 
 == restore: isolated rehearsal ==
-PASS restore: pg_dump of the stack written — 187 KiB -> D:\projects\repos-ia-exp\commerce-ai-ops-platform\.local\prod\backups\commerce-20261001T220142.dump
-PASS restore: row counts match table by table — {"action_executions":2,"action_requests":2,"agent_runs":7,"approvals":2,"audit_events":96,"chunks":26,"customers":3,"graph_checkpoints":39,"order_items":4,"orders":5,"outbox":7,"run_events":25,"shipments":2,"tickets":5}
-PASS restore: run state matches — {"COMPLETED":7}
+PASS restore: pg_dump of the stack written — 214 KiB -> D:\projects\repos-ia-exp\commerce-ai-ops-platform\.local\prod\backups\commerce-20261001T233549.dump
+PASS restore: row counts match table by table — {"action_executions":4,"action_requests":4,"agent_runs":14,"approvals":4,"audit_events":182,"chunks":26,"customers":3,"graph_checkpoints":78,"order_items":4,"orders":7,"outbox":14,"run_events":50,"shipments":2,"tickets":10}
+PASS restore: run state matches — {"COMPLETED":14}
 PASS restore: audit trail ends at the same event
 PASS restore: relations valid (all foreign keys validated, no orphans) and RLS policies present — 72 FKs, 45 policies on 36 RLS tables, 9 migrations
-PASS state survives every drill: no reseed or data loss — agent_runs 4 -> 7
+PASS state survives every drill: no reseed or data loss — agent_runs 11 -> 14
 
-Report: D:\projects\repos-ia-exp\commerce-ai-ops-platform\.smoke\m11-recovery-drill-20261001T220142\m11-recovery-drill-20261001T220142-92d2.json
+Report: D:\projects\repos-ia-exp\commerce-ai-ops-platform\.smoke\m11-recovery-drill-20261001T233549\m11-recovery-drill-20261001T233549-f473.json

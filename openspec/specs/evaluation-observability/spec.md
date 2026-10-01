@@ -1,7 +1,7 @@
 # evaluation-observability Specification
 
 ## Purpose
-Garantizar que el sistema se construye, verifica, evalúa, observa y despliega de forma reproducible, y que ningún objetivo, simulación o dato no medido se presenta como resultado. Cubre el bootstrap de M0, el ciclo de vida spec-driven y los gates de evaluación, trazas y auditoría (M10); el despliegue con recuperación (M11) se añade con su change. Excepciones aceptadas de M10 (2026-10-01): la release del holdout falla `intent_routing_macro_f1` (0,936 < 0,95) y `retrieval_mrr_at_5` (0,792 < 0,8) y las etiquetas no tienen adjudicación de dos revisores; ver `openspec/changes/archive/2026-10-01-add-evaluation-gates/design.md` (decisión 9). Ninguna excepción aplica a gates de seguridad.
+Garantizar que el sistema se construye, verifica, evalúa, observa y despliega de forma reproducible, y que ningún objetivo, simulación o dato no medido se presenta como resultado. Cubre el bootstrap de M0, el ciclo de vida spec-driven, los gates de evaluación, trazas y auditoría (M10) y el despliegue resiliente listo para AKS con recuperación ensayada (M11; aplicarlo en Azure es un paso futuro que requiere autorización explícita). Excepciones aceptadas de M10 (2026-10-01): la release del holdout falla `intent_routing_macro_f1` (0,936 < 0,95) y `retrieval_mrr_at_5` (0,792 < 0,8) y las etiquetas no tienen adjudicación de dos revisores; ver `openspec/changes/archive/2026-10-01-add-evaluation-gates/design.md` (decisión 9). Ninguna excepción aplica a gates de seguridad.
 
 ## Requirements
 
@@ -56,3 +56,22 @@ El sistema SHALL correlacionar request/run/tool/action, métricas de tokens/late
 #### Scenario: Investigate an executed action
 - **WHEN** un revisor autorizado consulta una acción
 - **THEN** identifica actor, aprobación, política, versión, resultado e idempotencia mediante evidencia persistida
+
+### Requirement: Resilient deployment and recovery
+El MVP SHALL tener un entorno local reproducible y una configuración de despliegue en Azure Kubernetes Service lista para aplicar, con TLS, servicios de datos privados, secretos administrados fuera de los manifiestos, health/readiness, migraciones controladas y ensayo de recuperación. Aplicarla en Azure SHALL requerir autorización explícita del dueño del repositorio; ningún paso automático crea recursos cloud.
+
+#### Scenario: Redis restart
+- **WHEN** se pierde estado de coordinación de Redis
+- **THEN** outbox/runs durables permiten reconstruir trabajo sin perder aprobaciones ni duplicar efectos, y las escrituras no eluden rate limits durante la recuperación
+
+#### Scenario: Restore rehearsal
+- **WHEN** se restaura un backup en entorno aislado
+- **THEN** se verifican relaciones, auditoría y estado de runs, y se documentan tiempos observados sin afirmar un SLA no medido
+
+#### Scenario: Deployment-ready validation without cloud resources
+- **WHEN** se valida la configuración de AKS sin credenciales ni recursos de Azure
+- **THEN** la IaC pasa formato y validación, los manifiestos se renderizan y validan contra los esquemas, y desplegados en un cluster Kubernetes local ejecutan la demo con migración que no resetea datos, sin crear ningún recurso cloud
+
+#### Scenario: Secrets never inline
+- **WHEN** se inspeccionan los manifiestos, la IaC y el workflow de despliegue
+- **THEN** ningún secreto aparece en ellos: en AKS llegan desde Key Vault por el driver CSI con workload identity, y el despliegue usa OIDC federado sin claves guardadas
