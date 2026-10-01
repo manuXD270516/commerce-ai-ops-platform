@@ -561,3 +561,103 @@ async function readRequest(trx: DomainTrx, id: string): Promise<ActionRequestRec
       : {}),
   };
 }
+
+export interface ActionTrail {
+  readonly request: ActionRequestRecord;
+  readonly execution: {
+    readonly idempotencyKey: string;
+    readonly resultRef: string | null;
+    readonly status: string;
+    readonly executedAt: string;
+  } | null;
+  readonly audit: readonly {
+    readonly actor: string;
+    readonly action: string;
+    readonly resourceType: string;
+    readonly resourceId: string | null;
+    readonly outcome: string;
+    readonly policyVersion: string;
+    readonly correlationId: string | null;
+    readonly recordedAt: string;
+  }[];
+  readonly events: readonly {
+    readonly eventId: string;
+    readonly aggregateVersion: number;
+    readonly payload: unknown;
+    readonly createdAt: string;
+  }[];
+}
+
+/**
+ * Everything persisted about one privileged action, for an authorized reviewer: who asked, who
+ * approved under which policy and version, what executed with which idempotency key, the audit
+ * trail with correlation ids and the domain event. Approver and admin may review; nobody edits.
+ */
+export async function getActionTrail(
+  db: Kysely<Database>,
+  ctx: ActorContext,
+  id: string,
+): Promise<ActionTrail> {
+  assertRole(ctx, ['approver', 'admin']);
+  return withUnitOfWork(db, ctx, async (trx) => {
+    const exists = await trx
+      .selectFrom('action_requests')
+      .select(['id', 'resource_id'])
+      .where('id', '=', id)
+      .executeTakeFirst();
+    if (!exists) throw new DomainError('NOT_FOUND', 'Action request not found');
+    const request = await readRequest(trx, id);
+    const execution = await trx
+      .selectFrom('action_executions')
+      .selectAll()
+      .where('action_request_id', '=', id)
+      .executeTakeFirst();
+    const audit = await trx
+      .selectFrom('audit_events')
+      .selectAll()
+      .where('resource_id', 'in', [id, exists.resource_id])
+      .orderBy('recorded_at', 'asc')
+      .execute();
+    const events = await trx
+      .selectFrom('outbox')
+      .selectAll()
+      .where('aggregate_id', '=', exists.resource_id)
+      .orderBy('created_at', 'asc')
+      .execute();
+    await appendAudit(trx, ctx, {
+      action: 'action_requests.review_trail',
+      resourceType: 'action_request',
+      resourceId: id,
+      outcome: 'ALLOWED',
+    });
+    return {
+      request,
+      execution: execution
+        ? {
+            idempotencyKey: execution.idempotency_key,
+            resultRef: execution.result_ref,
+            status: execution.status,
+            executedAt: execution.created_at.toISOString(),
+          }
+        : null,
+      audit: audit.map((a) => ({
+        actor: a.actor_subject_id,
+        action: a.action,
+        resourceType: a.resource_type,
+        resourceId: a.resource_id,
+        outcome: a.outcome,
+        policyVersion: a.policy_version,
+        correlationId: a.correlation_id,
+        recordedAt: a.recorded_at.toISOString(),
+      })),
+      events: events
+        .filter((e) => (e.payload as { actionRequestId?: string } | null)?.actionRequestId === id)
+        .map((e) => ({
+          eventId: e.event_id,
+          aggregateVersion: e.aggregate_version,
+          payload: e.payload,
+          createdAt: e.created_at.toISOString(),
+        })),
+    };
+  });
+}

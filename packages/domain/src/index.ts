@@ -20,6 +20,7 @@ export * from './migrate.js';
 export * from './orders.js';
 export * from './pii.js';
 export * from './probe.js';
+export * from './retention.js';
 export * from './runs.js';
 export * from './seed.js';
 export * from './tickets.js';

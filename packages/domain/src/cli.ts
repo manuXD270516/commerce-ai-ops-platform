@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+  applyRetention,
   createDb,
   createPool,
   hashEmbedder,
@@ -54,6 +55,8 @@ if (command === 'migrate') {
   } finally {
     await db.destroy();
   }
+} else if (command === 'retention') {
+  console.log(JSON.stringify({ retention: await applyRetention(urls().migratorUrl) }));
 } else {
   throw new Error(`unknown command ${command}`);
 }

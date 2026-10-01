@@ -87,15 +87,31 @@ const recoveryWorker = runDeps
       concurrency: 1,
     })
   : undefined;
-await recoveryQueue?.upsertJobScheduler(RUN_RECOVERY_SCHEDULER_ID, {
-  every: RUN_RECOVERY_EVERY_MS,
-});
-
-if (anomalyQueue) {
-  await anomalyQueue.upsertJobScheduler(ANOMALY_SCHEDULER_ID, { every: ANOMALY_EVERY_MS });
-} else {
-  logger.warn('DATABASE_URL is not set; the anomaly sweep is disabled');
+/**
+ * Redis keeps no state on purpose (no persistence), so schedulers vanish when it restarts. They
+ * are registered at start and again on every reconnection; the recovery sweep then rebuilds the
+ * lost run notifications from PostgreSQL.
+ */
+async function ensureSchedulers(): Promise<void> {
+  await recoveryQueue?.upsertJobScheduler(RUN_RECOVERY_SCHEDULER_ID, {
+    every: RUN_RECOVERY_EVERY_MS,
+  });
+  await anomalyQueue?.upsertJobScheduler(ANOMALY_SCHEDULER_ID, { every: ANOMALY_EVERY_MS });
 }
+await ensureSchedulers();
+// Registered after the first connection is up, so every later 'ready' is a reconnection.
+connection.on('ready', () => {
+  logger.warn('redis reconnected: re-registering schedulers and recovering work from PostgreSQL');
+  ensureSchedulers()
+    .then(() => recoveryQueue?.add('reconnect', {}))
+    .catch((error: unknown) => {
+      logger.error(
+        { err: error instanceof Error ? error.message : String(error) },
+        'scheduler re-registration failed',
+      );
+    });
+});
+if (!anomalyQueue) logger.warn('DATABASE_URL is not set; the anomaly sweep is disabled');
 
 async function probe(
   name: DependencyCheck['name'],

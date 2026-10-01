@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { trace } from '@opentelemetry/api';
 import { isRunCancelled, type ActorContext, type DomainDb } from '@commerce/domain';
 import { invokeTool, type Scope, type ToolResult } from '@commerce/tools';
 import { RunCancelledError, type Meter } from './budget.js';
@@ -33,6 +34,13 @@ export interface ToolCallRecord {
   readonly errorCode?: string;
 }
 
+export interface ToolCallObservation extends ToolCallRecord {
+  readonly args: Record<string, unknown>;
+  readonly data: unknown;
+}
+
+const tracer = trace.getTracer('@commerce/ai');
+
 /**
  * The only path from the graph to tools. Before every call it checks cancellation and reserves
  * budget; the call itself goes through @commerce/tools with the run owner's context and the
@@ -46,6 +54,8 @@ export class ToolGateway {
     private readonly ctx: ActorContext,
     private readonly runId: string,
     private readonly meter: Meter,
+    /** Evaluation hook: sees each call with its arguments and result; it cannot change them. */
+    private readonly observer?: (observation: ToolCallObservation) => void,
   ) {}
 
   async ensureActive(): Promise<void> {
@@ -60,19 +70,40 @@ export class ToolGateway {
     await this.ensureActive();
     this.meter.beforeToolCall();
     const toolCallId = randomUUID();
-    const result = await invokeTool(this.db, this.ctx, {
-      name: tool,
-      args,
-      profileScopes: SPECIALIST_PROFILES[profile],
-      toolCallId,
-    });
-    this.calls.push({
+    const result = await tracer.startActiveSpan(
+      'tool.call',
+      {
+        attributes: {
+          'commerce.tool': tool,
+          'commerce.tool_call_id': toolCallId,
+          'commerce.run_id': this.runId,
+          'commerce.profile': profile,
+        },
+      },
+      async (span) => {
+        try {
+          const outcome = await invokeTool(this.db, this.ctx, {
+            name: tool,
+            args,
+            profileScopes: SPECIALIST_PROFILES[profile],
+            toolCallId,
+          });
+          span.setAttribute('commerce.outcome', outcome.ok ? 'ok' : outcome.error.code);
+          return outcome;
+        } finally {
+          span.end();
+        }
+      },
+    );
+    const record: ToolCallRecord = {
       toolCallId,
       tool,
       profile,
       ok: result.ok,
       ...(result.ok ? {} : { errorCode: result.error.code }),
-    });
+    };
+    this.calls.push(record);
+    this.observer?.({ ...record, args, data: result.ok ? result.data : undefined });
     return result;
   }
 

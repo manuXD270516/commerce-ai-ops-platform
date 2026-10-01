@@ -11,6 +11,9 @@ import {
   type EvalReport,
   type GateDefinition,
 } from './report.js';
+import { writeDashboard } from './dashboard.js';
+import { runOpsSuite } from './ops-suite.js';
+import { runPiiAudit } from './pii-audit.js';
 import { runRecommendationSuite } from './recommendation-suite.js';
 import { runRetrievalSuites } from './retrieval-suite.js';
 import { runRouterSuites } from './router-suite.js';
@@ -71,6 +74,16 @@ if (adminUrl && migratorUrl && runtimeUrl && piiKey) {
   reports.push(
     await runRecommendationSuite(fixtures, { adminUrl, migratorUrl, runtimeUrl, piiKey }),
   );
+  // Development split only; the sealed holdout is read exclusively by `pnpm evals:release`.
+  const ops = await runOpsSuite(
+    fixtures,
+    { adminUrl, migratorUrl, runtimeUrl, piiKey },
+    'dev',
+    Number(process.env.EVALS_REPETITIONS ?? 3),
+  );
+  reports.push(...ops.reports);
+  reports.push(await runPiiAudit(adminUrl, join(root, '..')));
+  console.log(`dashboard: ${relative(process.cwd(), await writeDashboard(migratorUrl, outDir))}`);
 } else {
   console.log('database suites skipped: DATABASE_* URLs and PII_ENCRYPTION_KEY are not set');
 }

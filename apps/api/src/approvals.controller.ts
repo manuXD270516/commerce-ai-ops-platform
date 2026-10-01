@@ -16,6 +16,7 @@ import {
   createActionRequest,
   decideApproval,
   getActionRequest,
+  getActionTrail,
   getOrder,
   listActionRequests,
   type ActionRequestRecord,
@@ -134,6 +135,34 @@ export class ApprovalsController {
     const ctx = await this.domain.actorOf(req);
     const db = this.domain.requireDb();
     return view(db, ctx, await getActionRequest(db, ctx, requireUuid(id, 'id')));
+  }
+
+  /** Read-only review of a privileged action: request, approval, execution, audit and event. */
+  @Get('action-requests/:id/trail')
+  async trail(@Req() req: Request, @Param('id') id: string) {
+    const ctx = await this.domain.actorOf(req);
+    const t = await getActionTrail(this.domain.requireDb(), ctx, requireUuid(id, 'id'));
+    return {
+      request: {
+        id: t.request.id,
+        tool: t.request.tool,
+        resource_id: t.request.resourceId,
+        canonical_args: t.request.canonicalArgs,
+        canonical_args_hash: t.request.canonicalArgsHash,
+        expected_version: t.request.expectedVersion,
+        policy_version: t.request.policyVersion,
+        requester: t.request.requesterSubjectId,
+        status: t.request.status,
+        created_at: t.request.createdAt,
+        expires_at: t.request.expiresAt,
+        run_id: t.request.runId,
+      },
+      approval: t.request.decision ?? null,
+      execution: t.execution,
+      audit: t.audit,
+      events: t.events,
+      observed_at: new Date().toISOString(),
+    };
   }
 
   /** Approver decision; the waiting run (if any) is resumed and re-checks everything itself. */

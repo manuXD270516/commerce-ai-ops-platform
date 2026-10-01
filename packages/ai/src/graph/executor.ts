@@ -1,4 +1,5 @@
 import { Command } from '@langchain/langgraph';
+import { trace } from '@opentelemetry/api';
 import {
   EMPTY_USAGE,
   claimAgentRun,
@@ -16,7 +17,7 @@ import {
 } from '@commerce/domain';
 import { Meter } from './budget.js';
 import { TenantCheckpointSaver } from './checkpointer.js';
-import { ToolGateway } from './gateway.js';
+import { ToolGateway, type ToolCallObservation } from './gateway.js';
 import {
   buildSupervisorGraph,
   type GraphRuntime,
@@ -35,6 +36,8 @@ export interface ExecutorDeps {
   readonly leaseMs?: number;
   readonly region?: string;
   readonly locale?: string;
+  /** Evaluation hook: observes tool calls (arguments and results) without affecting them. */
+  readonly onToolCall?: (observation: ToolCallObservation) => void;
 }
 
 export type ExecutionStatus = 'SKIPPED' | 'WAITING_HUMAN' | 'COMPLETED' | 'CANCELLED' | 'FAILED';
@@ -51,6 +54,29 @@ export interface ExecutionReport {
  * run owner's membership, so a revoked user's run ends without effects.
  */
 export async function executeRun(
+  deps: ExecutorDeps,
+  tenantId: string,
+  runId: string,
+): Promise<ExecutionReport> {
+  return tracer.startActiveSpan(
+    'agent.run',
+    { attributes: { 'commerce.run_id': runId, 'commerce.worker_id': deps.workerId } },
+    async (span) => {
+      try {
+        const report = await driveRun(deps, tenantId, runId);
+        span.setAttribute('commerce.run_status', report.status);
+        if (report.outcome) span.setAttribute('commerce.run_outcome', report.outcome);
+        return report;
+      } finally {
+        span.end();
+      }
+    },
+  );
+}
+
+const tracer = trace.getTracer('@commerce/ai');
+
+async function driveRun(
   deps: ExecutorDeps,
   tenantId: string,
   runId: string,
@@ -100,7 +126,7 @@ export async function executeRun(
     const values = before.values as Partial<RunStateValue>;
     const meter = new Meter(claimed.budgets, maxUsage(claimed.usage, values.usage));
     rt.meter = meter;
-    rt.gateway = new ToolGateway(db, ctx, runId, meter);
+    rt.gateway = new ToolGateway(db, ctx, runId, meter, deps.onToolCall);
 
     const started = Object.keys(values).length > 0 && before.createdAt !== undefined;
     let input: unknown;

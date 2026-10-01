@@ -1,0 +1,31 @@
+{
+  "id": "ops-eval",
+  "version": "1.0.0",
+  "kind": "synthetic",
+  "created": "2026-10-01",
+  "description": "M10 release evaluation: 300 cases (80 order investigations, 80 recommendations, 50 inventory anomalies, 90 adversarial/ambiguous) over commerce-domain@0.3.0 plus the scenario orders of evals/src/ops-scenarios.ts. Split by template family: 180 dev, 120 holdout (sealed: committed sha256 below; only `pnpm evals:release` reads it). Labels by construction from family definitions and an eligibility rule written independently of the product code; single author, not adjudicated by two reviewers.",
+  "counts": {
+    "dev": {
+      "investigation": 48,
+      "recommendation": 48,
+      "anomaly": 30,
+      "adversarial": 54
+    },
+    "holdout": {
+      "investigation": 32,
+      "recommendation": 32,
+      "anomaly": 20,
+      "adversarial": 36
+    }
+  },
+  "files": [
+    {
+      "path": "dev.jsonl",
+      "sha256": "4108207aa453d9e297ce1aa145155c13563da67b9b48eea3009338f21809deb6"
+    },
+    {
+      "path": "holdout.jsonl",
+      "sha256": "0706692ff5d5cf533bad62d577a0bd5e3d81dd057fd7d57c3becd81c24154ebf"
+    }
+  ]
+}

@@ -7,7 +7,8 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "evals": "node dist/cli.js"
+    "evals": "node dist/cli.js",
+    "release": "node dist/release.js"
   },
   "dependencies": {
     "@commerce/ai": "workspace:*",

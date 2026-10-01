@@ -15,7 +15,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "migrate": "node dist/cli.js migrate",
-    "seed": "node dist/cli.js seed"
+    "seed": "node dist/cli.js seed",
+    "retention": "node dist/cli.js retention"
   },
   "dependencies": {
     "kysely": "0.29.6",

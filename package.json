@@ -21,6 +21,7 @@
     "verify": "pnpm run lint && pnpm run format:check && pnpm run typecheck && pnpm run build && pnpm run test && pnpm run contracts:check && pnpm run evals",
     "db:migrate": "pnpm --filter @commerce/domain run migrate",
     "db:seed": "pnpm --filter @commerce/domain run seed",
+    "db:retention": "pnpm --filter @commerce/domain run retention",
     "auth:init": "node infra/scripts/auth-init.mjs",
     "infra:up": "docker compose -f infra/compose.yaml --env-file .env up -d --wait",
     "infra:up:tracing": "docker compose -f infra/compose.yaml --env-file .env --profile tracing up -d --wait",
@@ -30,7 +31,14 @@
     "start:worker": "pnpm --filter @commerce/worker run start",
     "start:mcp": "pnpm --filter @commerce/commerce-mcp-server run start",
     "smoke": "node infra/scripts/smoke.mjs",
-    "e2e": "pnpm --filter @commerce/web run e2e"
+    "e2e": "pnpm --filter @commerce/web run e2e",
+    "load": "node infra/scripts/load.mjs",
+    "evals:release": "pnpm --filter @commerce/evals run release",
+    "prod:secrets": "node infra/scripts/prod-secrets.mjs",
+    "prod:up": "docker compose -f infra/compose.prod.yaml up -d --build --wait",
+    "prod:down": "docker compose -f infra/compose.prod.yaml down",
+    "prod:demo": "node infra/scripts/demo.mjs",
+    "prod:drill": "node infra/scripts/recovery-drill.mjs"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

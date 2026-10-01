@@ -66,6 +66,10 @@ async function resetCorpus(adminUrl: string, db: DomainDb, embedder: Embedder): 
   const admin = new pg.Client({ connectionString: adminUrl });
   await admin.connect();
   try {
+    // Earlier runs may cite document versions; this local reset detaches those citations.
+    await admin.query(
+      'UPDATE commerce.evidence SET document_version_id = NULL WHERE document_version_id IS NOT NULL',
+    );
     for (const table of ['retrieval_cache', 'chunks', 'document_versions', 'documents']) {
       await admin.query(`DELETE FROM commerce.${table}`);
     }

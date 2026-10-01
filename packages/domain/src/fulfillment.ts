@@ -110,7 +110,8 @@ export async function getShippingStatus(
             row.estimated_delivery_at < now
               ? Math.floor((now.getTime() - row.estimated_delivery_at.getTime()) / 3_600_000)
               : null,
-          stale: age > STALE_TRACKING_MS,
+          // Freshness matters while a package moves; a delivered one has nothing left to track.
+          stale: age > STALE_TRACKING_MS && row.status !== 'DELIVERED',
           sourceMode: 'simulated',
           items: items.map((item) => ({
             orderItemId: item.order_item_id,

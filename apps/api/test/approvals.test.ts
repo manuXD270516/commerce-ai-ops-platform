@@ -187,6 +187,46 @@ describe.skipIf(!enabled)('approval inbox and resumed runs over REST (M8)', () =
       [request.id],
     );
     expect(executions.rowCount).toBe(1);
+
+    // A reviewer reconstructs the action from persisted evidence alone.
+    const trail = (await (
+      await call('GET', `/v1/action-requests/${request.id}/trail`, approver)
+    ).json()) as {
+      request: { requester: string; policy_version: string; expected_version: number };
+      approval: { approverSubjectId: string; decision: string };
+      execution: { idempotencyKey: string; status: string };
+      audit: {
+        action: string;
+        actor: string;
+        correlationId: string | null;
+        policyVersion: string;
+      }[];
+      events: { payload: { status: string } }[];
+    };
+    expect(trail.request).toMatchObject({
+      requester: FIXTURES.subjects.ben,
+      policy_version: 'policy.v1',
+      expected_version: 1,
+    });
+    expect(trail.approval).toMatchObject({
+      approverSubjectId: FIXTURES.subjects.acmeApprover,
+      decision: 'APPROVED',
+    });
+    expect(trail.execution).toMatchObject({ idempotencyKey: `run-${run.id}`, status: 'SUCCEEDED' });
+    const actions = trail.audit.map((a) => a.action);
+    expect(actions).toEqual(
+      expect.arrayContaining([
+        'action_requests.create',
+        'approvals.approve',
+        'orders.update_order',
+        'approvals.consume',
+      ]),
+    );
+    expect(trail.audit.find((a) => a.action === 'orders.update_order')?.correlationId).toBe(
+      `run-${run.id}`,
+    );
+    expect(trail.events.map((e) => e.payload.status)).toEqual(['CANCELLATION_REQUESTED']);
+    expect((await call('GET', `/v1/action-requests/${request.id}/trail`, ben)).status).toBe(403);
   });
 
   it('reports a stale approval as a server conflict and never as executed', async () => {

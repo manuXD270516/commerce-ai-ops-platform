@@ -5,6 +5,7 @@ import { Queue } from 'bullmq';
 import { Redis } from 'ioredis';
 
 export const RUN_DISPATCHER = Symbol('RUN_DISPATCHER');
+const DISPATCH_TIMEOUT_MS = 1500;
 
 /**
  * Hands a run to whoever executes it. The run row in PostgreSQL is the durable record; a job is
@@ -26,12 +27,22 @@ export class QueueRunDispatcher implements RunDispatcher {
     this.queue = new Queue(AGENT_RUN_QUEUE, { connection: this.connection });
   }
 
+  /**
+   * Best effort with a short timeout: when Redis is down the run is already durable in PostgreSQL
+   * and the worker's recovery sweep picks it up once coordination is back, so the API answers 202
+   * instead of hanging or failing the request.
+   */
   async dispatch(tenantId: string, runId: string): Promise<void> {
-    await this.queue.add(
+    const add = this.queue.add(
       'run',
       { tenantId, runId },
       { jobId: `${runId}-${String(Date.now())}`, removeOnComplete: 1000, removeOnFail: 1000 },
     );
+    add.catch(() => undefined);
+    await Promise.race([
+      add,
+      new Promise((resolve) => setTimeout(resolve, DISPATCH_TIMEOUT_MS).unref()),
+    ]);
   }
 
   async close(): Promise<void> {
