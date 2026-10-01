@@ -1,0 +1,12 @@
+{
+  "id": "commerce-domain",
+  "version": "0.3.0",
+  "kind": "synthetic",
+  "description": "0.2.0 plus promised delivery dates (estimatedDeliveryAt) per shipment, used by the versioned escalation rule (M7).",
+  "files": [
+    {
+      "path": "seed.json",
+      "sha256": "f53a3d8549c8df786274f3e487c4380b3aec10bd5ac678eea61cc03e7bd5ef99"
+    }
+  ]
+}

@@ -1,10 +1,8 @@
 import { Body, Controller, Get, Headers, Inject, Param, Post, Req, Res } from '@nestjs/common';
 import {
   createActionRequest,
-  createAgentRun,
   decideApproval,
   executeUpdateOrder,
-  getAgentRun,
   getOrder,
   getShippingStatus,
   listAnomalies,
@@ -14,14 +12,11 @@ import {
   DomainError,
 } from '@commerce/domain';
 import { invokeTool } from '@commerce/tools';
-import { classifyIntent, createEmbedder, runSpecialist } from '@commerce/ai';
 import type { Request, Response } from 'express';
 import { DOMAIN, DomainService } from './domain.service.js';
 
 @Controller('v1')
 export class CommerceController {
-  private readonly embedder = createEmbedder();
-
   constructor(@Inject(DOMAIN) private readonly domain: DomainService) {}
 
   @Get('orders/:id')
@@ -187,61 +182,5 @@ export class CommerceController {
       actionRequestId: body.action_request_id,
       idempotencyKey: idempotencyKey ?? 'missing',
     });
-  }
-
-  @Post('agent-runs')
-  async createRun(
-    @Req() req: Request,
-    @Res({ passthrough: true }) res: Response,
-    @Body() body: { message: string },
-  ) {
-    const ctx = await this.domain.actorOf(req);
-    const classified = classifyIntent(body.message);
-    const run = await createAgentRun(this.domain.requireDb(), ctx, {
-      intent: classified.intent,
-      promptVersion: 'router.v1',
-      modelVersion: 'simulated-llm.v1',
-    });
-    if (classified.intent !== 'clarify') {
-      await runSpecialist(
-        this.domain.requireDb(),
-        ctx,
-        run.id,
-        classified.intent,
-        body.message,
-        this.embedder,
-      );
-    }
-    res.status(202);
-    return {
-      id: run.id,
-      status: run.status,
-      intent: classified.intent,
-      observed_at: new Date().toISOString(),
-    };
-  }
-
-  @Get('agent-runs/:id')
-  async run(@Req() req: Request, @Param('id') id: string) {
-    const ctx = await this.domain.actorOf(req);
-    const run = await getAgentRun(this.domain.requireDb(), ctx, id);
-    return {
-      id: run.id,
-      status: run.status,
-      intent: run.intent,
-      observed_at: new Date().toISOString(),
-    };
-  }
-
-  @Get('agent-runs/:id/events')
-  async events(@Req() req: Request, @Res() res: Response, @Param('id') id: string) {
-    const ctx = await this.domain.actorOf(req);
-    const run = await getAgentRun(this.domain.requireDb(), ctx, id);
-    res.setHeader('content-type', 'text/event-stream');
-    res.setHeader('cache-control', 'no-cache');
-    for (const event of run.events) {
-      res.write(`id: ${event.seq}\ndata: ${JSON.stringify(event.data)}\n\n`);
-    }
-    res.end();
   }
 }

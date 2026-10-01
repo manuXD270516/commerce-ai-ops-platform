@@ -1,0 +1,30 @@
+{"id":"ord-where-01","suite":"train","family":"ord-where","input":{"message":"¿Dónde está mi pedido 00000000-0000-4000-8000-000000000401?"},"expected":{"intents":["order_investigation"],"decision":"route"}}
+{"id":"ord-where-02","suite":"train","family":"ord-where","input":{"message":"Dónde está la orden 00000000-0000-4000-8000-000000000402"},"expected":{"intents":["order_investigation"],"decision":"route"}}
+{"id":"ord-where-03","suite":"train","family":"ord-where","input":{"message":"¿Dónde quedó mi compra 7b1c9e52-3f0a-4d8e-9c41-2a6f0e8d1b33?"},"expected":{"intents":["order_investigation"],"decision":"route"}}
+{"id":"ord-late-01","suite":"train","family":"ord-late","input":{"message":"Mi pedido 00000000-0000-4000-8000-000000000401 está atrasado"},"expected":{"intents":["order_investigation"],"decision":"route"}}
+{"id":"ord-late-02","suite":"train","family":"ord-late","input":{"message":"La orden 00000000-0000-4000-8000-000000000402 no llega y ya pasó la fecha"},"expected":{"intents":["order_investigation"],"decision":"route"}}
+{"id":"ord-late-03","suite":"train","family":"ord-late","input":{"message":"El envío de 7b1c9e52-3f0a-4d8e-9c41-2a6f0e8d1b33 viene con retraso"},"expected":{"intents":["order_investigation"],"decision":"route"}}
+{"id":"ord-lost-01","suite":"train","family":"ord-lost","input":{"message":"Creo que se perdió mi paquete de la orden 00000000-0000-4000-8000-000000000401"},"expected":{"intents":["order_investigation"],"decision":"route"}}
+{"id":"ord-lost-02","suite":"train","family":"ord-lost","input":{"message":"El transportista perdió mi pedido 00000000-0000-4000-8000-000000000402"},"expected":{"intents":["order_investigation"],"decision":"route"}}
+{"id":"ord-lost-03","suite":"train","family":"ord-lost","input":{"message":"Mi compra 7b1c9e52-3f0a-4d8e-9c41-2a6f0e8d1b33 figura como extraviada"},"expected":{"intents":["order_investigation"],"decision":"route"}}
+{"id":"ord-disputed-01","suite":"train","family":"ord-disputed","input":{"message":"Dice entregado pero no recibí el pedido 00000000-0000-4000-8000-000000000401"},"expected":{"intents":["order_investigation"],"decision":"route"}}
+{"id":"ord-disputed-02","suite":"train","family":"ord-disputed","input":{"message":"La orden 00000000-0000-4000-8000-000000000402 figura entregada y no llegó nada"},"expected":{"intents":["order_investigation"],"decision":"route"}}
+{"id":"ord-noid-01","suite":"train","family":"ord-noid","input":{"message":"¿Dónde está mi pedido?"},"expected":{"intents":["order_investigation"],"decision":"clarify"}}
+{"id":"ord-noid-02","suite":"train","family":"ord-noid","input":{"message":"Mi orden no llega"},"expected":{"intents":["order_investigation"],"decision":"clarify"}}
+{"id":"ord-noid-03","suite":"train","family":"ord-noid","input":{"message":"Quiero saber el estado de mi compra"},"expected":{"intents":["order_investigation"],"decision":"clarify"}}
+{"id":"rec-budget-01","suite":"train","family":"rec-budget","input":{"message":"Recomiéndame una notebook de desarrollo por menos de USD 1.500"},"expected":{"intents":["product_recommendation"],"decision":"route"}}
+{"id":"rec-budget-02","suite":"train","family":"rec-budget","input":{"message":"Busco una laptop para programar por menos de 1500 dólares"},"expected":{"intents":["product_recommendation"],"decision":"route"}}
+{"id":"rec-budget-03","suite":"train","family":"rec-budget","input":{"message":"Notebook para desarrollo con presupuesto de US$ 1200"},"expected":{"intents":["product_recommendation"],"decision":"route"}}
+{"id":"rec-ram-01","suite":"train","family":"rec-ram","input":{"message":"Quiero una portátil con 32GB de RAM"},"expected":{"intents":["product_recommendation"],"decision":"route"}}
+{"id":"rec-ram-02","suite":"train","family":"rec-ram","input":{"message":"Necesito una computadora con 64 GB de memoria"},"expected":{"intents":["product_recommendation"],"decision":"route"}}
+{"id":"rec-ram-03","suite":"train","family":"rec-ram","input":{"message":"Busco notebook de 16GB"},"expected":{"intents":["product_recommendation"],"decision":"route"}}
+{"id":"inv-critical-01","suite":"train","family":"inv-critical","input":{"message":"¿Qué alertas de stock crítico hay?"},"expected":{"intents":["inventory_anomaly"],"decision":"route"}}
+{"id":"inv-critical-02","suite":"train","family":"inv-critical","input":{"message":"Muéstrame los SKU con stock crítico"},"expected":{"intents":["inventory_anomaly"],"decision":"route"}}
+{"id":"inv-critical-03","suite":"train","family":"inv-critical","input":{"message":"Alertas de inventario abiertas"},"expected":{"intents":["inventory_anomaly"],"decision":"route"}}
+{"id":"inv-unusual-01","suite":"train","family":"inv-unusual","input":{"message":"Explica la alerta de pedido inusual"},"expected":{"intents":["inventory_anomaly"],"decision":"route"}}
+{"id":"inv-unusual-02","suite":"train","family":"inv-unusual","input":{"message":"¿Por qué se marcó una orden inusual de NB-DEV-16?"},"expected":{"intents":["inventory_anomaly"],"decision":"route"}}
+{"id":"oos-general-01","suite":"train","family":"oos-general","input":{"message":"¿Cuál es la capital de Francia?"},"expected":{"intents":["out_of_scope"],"decision":"out_of_scope"}}
+{"id":"oos-general-02","suite":"train","family":"oos-general","input":{"message":"Escribe un poema sobre el mar"},"expected":{"intents":["out_of_scope"],"decision":"out_of_scope"}}
+{"id":"oos-general-03","suite":"train","family":"oos-general","input":{"message":"Cuéntame un chiste"},"expected":{"intents":["out_of_scope"],"decision":"out_of_scope"}}
+{"id":"oos-refund-01","suite":"train","family":"oos-refund","input":{"message":"Quiero un reembolso ahora mismo"},"expected":{"intents":["out_of_scope"],"decision":"out_of_scope"}}
+{"id":"oos-refund-02","suite":"train","family":"oos-refund","input":{"message":"Devuélvanme el dinero a mi tarjeta"},"expected":{"intents":["out_of_scope"],"decision":"out_of_scope"}}

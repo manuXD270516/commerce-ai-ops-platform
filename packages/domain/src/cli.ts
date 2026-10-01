@@ -43,7 +43,7 @@ if (command === 'migrate') {
     const docs = await seedKnowledgeCorpus(db, hashEmbedder());
     console.log(
       JSON.stringify({
-        seeded: 'commerce-domain@0.2.0',
+        seeded: 'commerce-domain@0.3.0',
         knowledge: {
           corpus: 'knowledge@0.1.0',
           versions: docs.length,

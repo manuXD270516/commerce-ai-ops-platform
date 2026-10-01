@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type { Kysely } from 'kysely';
 import type { ActorContext } from './access.js';
 import { assertRole } from './actors.js';
-import { STALE_TRACKING_MS } from './constants.js';
+import { ESCALATION_DELAY_MS, STALE_TRACKING_MS } from './constants.js';
 import type { Database } from './db.js';
 import { DomainError } from './errors.js';
 import { claimInbox } from './inventory.js';
@@ -26,6 +26,10 @@ export interface ShipmentView {
   readonly trackingRef: string;
   readonly carrier: string;
   readonly lastObservedAt: string;
+  /** Promised delivery date of this package, when the carrier gave one. */
+  readonly estimatedDeliveryAt: string | null;
+  /** Whole hours past the promised date for an undelivered package; null when not late. */
+  readonly delayHours: number | null;
   readonly stale: boolean;
   readonly sourceMode: 'simulated';
   readonly items: readonly { readonly orderItemId: string; readonly quantity: number }[];
@@ -36,6 +40,33 @@ export interface ShippingStatus {
   readonly orderStatus: string;
   readonly shipments: readonly ShipmentView[];
   readonly observedAt: string;
+  readonly escalation: EscalationAssessment;
+}
+
+export const ESCALATION_RULE_VERSION = 'escalation.v1';
+export type EscalationReason = 'shipment_lost' | 'delivered_disputed' | 'delay_over_48h';
+
+/** Deterministic escalation rule (docs/agents-security-mcp.md): LOST, DELIVERED_DISPUTED or > 48 h late. */
+export interface EscalationAssessment {
+  readonly required: boolean;
+  readonly ruleVersion: typeof ESCALATION_RULE_VERSION;
+  readonly reasons: readonly EscalationReason[];
+}
+
+export function assessEscalation(shipments: readonly ShipmentView[]): EscalationAssessment {
+  const reasons = new Set<EscalationReason>();
+  for (const s of shipments) {
+    if (s.status === 'LOST') reasons.add('shipment_lost');
+    if (s.status === 'DELIVERED_DISPUTED') reasons.add('delivered_disputed');
+    if (s.delayHours !== null && s.delayHours * 3_600_000 > ESCALATION_DELAY_MS) {
+      reasons.add('delay_over_48h');
+    }
+  }
+  return {
+    required: reasons.size > 0,
+    ruleVersion: ESCALATION_RULE_VERSION,
+    reasons: [...reasons].sort(),
+  };
 }
 
 export async function getShippingStatus(
@@ -72,6 +103,13 @@ export async function getShippingStatus(
           trackingRef: row.tracking_ref,
           carrier: row.carrier,
           lastObservedAt: row.last_observed_at.toISOString(),
+          estimatedDeliveryAt: row.estimated_delivery_at?.toISOString() ?? null,
+          delayHours:
+            row.estimated_delivery_at &&
+            row.status !== 'DELIVERED' &&
+            row.estimated_delivery_at < now
+              ? Math.floor((now.getTime() - row.estimated_delivery_at.getTime()) / 3_600_000)
+              : null,
           stale: age > STALE_TRACKING_MS,
           sourceMode: 'simulated',
           items: items.map((item) => ({
@@ -92,6 +130,7 @@ export async function getShippingStatus(
       orderStatus: order.status,
       shipments,
       observedAt: now.toISOString(),
+      escalation: assessEscalation(shipments),
     };
   });
 }

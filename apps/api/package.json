@@ -18,6 +18,7 @@
     "@nestjs/common": "12.1.0",
     "@nestjs/core": "12.1.0",
     "@nestjs/platform-express": "12.1.0",
+    "bullmq": "6.3.9",
     "ioredis": "6.0.0",
     "pg": "8.23.0",
     "pino": "10.3.1",

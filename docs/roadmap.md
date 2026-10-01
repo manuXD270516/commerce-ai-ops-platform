@@ -1,6 +1,6 @@
 # Roadmap del MVP
 
-M0 a M3 completados (2026-09-29) y M4–M5 (2026-10-01); M6–M11 pendientes. La secuencia expresa dependencias, no estimaciones de calendario. Cada milestone tiene su propio change en `openspec/changes/` con los requisitos que implementa; se archiva sólo cuando sus tareas tienen evidencia. M0 usó `define-commerce-ops-mvp`, que nació como contrato M0–M11 y se dividió tras completarlo. Si cambia alcance o comportamiento, actualizar proposal/spec/design/tasks antes de implementar; una feature adicional lleva nuevo change.
+M0 a M3 completados (2026-09-29) y M4–M6 (2026-10-01); M7–M11 pendientes. La secuencia expresa dependencias, no estimaciones de calendario. Cada milestone tiene su propio change en `openspec/changes/` con los requisitos que implementa; se archiva sólo cuando sus tareas tienen evidencia. M0 usó `define-commerce-ops-mvp`, que nació como contrato M0–M11 y se dividió tras completarlo. Si cambia alcance o comportamiento, actualizar proposal/spec/design/tasks antes de implementar; una feature adicional lleva nuevo change.
 
 | Milestone (change) | Dependencias | Entregable previsto | Gate de salida / evidencia |
 |---|---|---|---|
@@ -10,7 +10,7 @@ M0 a M3 completados (2026-09-29) y M4–M5 (2026-10-01); M6–M11 pendientes. La
 | M3 Orders and inventory (`add-orders-and-inventory`, completado) | M1, M2 | Órdenes, fulfillment, shipping simulado, reserva/movimientos y detector de anomalías | Concurrencia/idempotencia; paquetes parciales; 4 reglas con fixtures y freshness |
 | M4 RAG (`add-hybrid-retrieval`, completado) | M2, políticas/fixtures M1 | Ingesta versionada, publicación, ACL, SQL + full-text + pgvector, citas | Recall baseline; no fugas; versiones históricas; no candidatos; retiro/invalidation |
 | M5 MCP (`add-controlled-mcp`, completado) | M3, M4 | Ocho tools y permisos/scopes, schemas, auditoría e idempotencia | Contratos cliente-servidor; WRITE sin consentimiento y PRIVILEGED sin aprobación denegados |
-| M6 Agent router (`add-agent-router`) | M5 | Selección de proveedor por eval, grafo, routing y presupuestos | Macro-F1 y errores; reanudación durable; supervisor sin reglas de negocio |
+| M6 Agent router (`add-agent-router`, completado) | M5 | Selección de proveedor por eval, grafo, routing y presupuestos | Macro-F1 y errores; reanudación durable; supervisor sin reglas de negocio |
 | M7 Specialist agents (`add-specialist-agents`) | M6 | Workflows Order, Recommendation, Inventory y auxiliares Catalog/Support | Casos end-to-end con evidencia; guardrails; cero escrituras privilegiadas sin M8 |
 | M8 Human approval (`add-human-approval`) | M5, M7 | ActionRequest/Approval, separación de funciones, consumo atómico | Replay/expiry/payload/version/restart/revocation probados; autorización al commit |
 | M9 React/Next.js UI (`add-operations-console`) | M2–M8 | Consola operacional, streaming, citas y bandeja de aprobación | E2E por rol; loading/error/empty/degraded; teclado; reconexión; simulaciones visibles |

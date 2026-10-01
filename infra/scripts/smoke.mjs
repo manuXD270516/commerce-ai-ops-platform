@@ -200,6 +200,51 @@ try {
       mcpBody.result.structuredContent?.data?.id === '00000000-0000-4000-8000-000000000401',
   );
 
+  // Agent run end to end: API (202) -> BullMQ -> worker -> LangGraph checkpoints in PostgreSQL.
+  const apiToken = contracts.signAccessToken(
+    {
+      subject: 'acme-customer-ana',
+      tenantId: '00000000-0000-4000-8000-000000000001',
+      audience: contracts.AUDIENCES.api,
+    },
+    {
+      issuer: process.env.AUTH_ISSUER,
+      privateJwk: JSON.parse(
+        readFileSync(
+          join(root, process.env.AUTH_SIGNING_KEY_FILE ?? '.local/auth/issuer-private.jwk.json'),
+          'utf8',
+        ),
+      ),
+    },
+  );
+  const apiBase = `http://127.0.0.1:${process.env.API_PORT ?? 3001}`;
+  const runRes = await fetch(`${apiBase}/v1/agent-runs`, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${apiToken}`, 'content-type': 'application/json' },
+    body: JSON.stringify({
+      message: '¿Dónde está mi pedido 00000000-0000-4000-8000-000000000401?',
+    }),
+  });
+  const createdRun = runRes.status === 202 ? await runRes.json() : undefined;
+  let finishedRun;
+  for (let i = 0; createdRun && i < 60; i++) {
+    const current = await (
+      await fetch(`${apiBase}/v1/agent-runs/${createdRun.id}`, {
+        headers: { authorization: `Bearer ${apiToken}` },
+      })
+    ).json();
+    if (['COMPLETED', 'FAILED', 'CANCELLED'].includes(current.status)) {
+      finishedRun = current;
+      break;
+    }
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  check(
+    'agent run goes api -> queue -> worker and completes with an answer',
+    finishedRun?.status === 'COMPLETED' && finishedRun.outcome === 'ANSWERED',
+    finishedRun ? `${finishedRun.status}/${finishedRun.outcome}` : 'no result',
+  );
+
   const unauthenticated = await fetch(
     `http://127.0.0.1:${process.env.API_PORT ?? 3001}/v1/products`,
   );

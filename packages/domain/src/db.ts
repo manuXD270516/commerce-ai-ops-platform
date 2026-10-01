@@ -250,6 +250,36 @@ export interface AgentRunsTable {
   prompt_version: string | null;
   model_version: string | null;
   created_at: Generated<Date>;
+  input: Json;
+  outcome: string | null;
+  usage: Json;
+  router_version: string | null;
+  cancel_requested_at: Date | null;
+  lease_owner: string | null;
+  lease_expires_at: Date | null;
+  updated_at: Generated<Date>;
+}
+
+export interface GraphCheckpointsTable {
+  tenant_id: string;
+  thread_id: string;
+  checkpoint_ns: string;
+  checkpoint_id: string;
+  parent_checkpoint_id: string | null;
+  checkpoint: Buffer;
+  metadata: Buffer;
+  created_at: Generated<Date>;
+}
+
+export interface GraphWritesTable {
+  tenant_id: string;
+  thread_id: string;
+  checkpoint_ns: string;
+  checkpoint_id: string;
+  write_key: string;
+  task_id: string;
+  channel: string;
+  value: Buffer;
 }
 
 export interface RunEventsTable {
@@ -419,6 +449,8 @@ export interface Database {
   anomalies: AnomaliesTable;
   retrieval_cache: RetrievalCacheTable;
   consents: ConsentsTable;
+  graph_checkpoints: GraphCheckpointsTable;
+  graph_writes: GraphWritesTable;
 }
 
 export type DomainDb = Kysely<Database>;

@@ -6,7 +6,7 @@ import pg from 'pg';
 import { encryptEmail, hashEmail } from './pii.js';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '../../..');
-export const COMMERCE_FIXTURE_DIR = join(repoRoot, 'evals/fixtures/commerce-domain/0.2.0');
+export const COMMERCE_FIXTURE_DIR = join(repoRoot, 'evals/fixtures/commerce-domain/0.3.0');
 
 interface SeedFile {
   tenants: { id: string; slug: string; name: string }[];
@@ -70,6 +70,7 @@ interface SeedFile {
     trackingRef: string;
     status: string;
     lastObservedAt: string;
+    estimatedDeliveryAt?: string;
   }[];
   observations?: {
     tenant: string;
@@ -222,8 +223,9 @@ export async function seedCommerceDomain(migratorUrl: string, piiKey: string): P
     for (const row of seed.shipments) {
       await client.query(
         `INSERT INTO commerce.shipments
-          (tenant_id, id, fulfillment_id, carrier, tracking_ref, status, last_observed_at, source_mode)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,'simulated')`,
+          (tenant_id, id, fulfillment_id, carrier, tracking_ref, status, last_observed_at,
+           estimated_delivery_at, source_mode)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,'simulated')`,
         [
           tenantId[row.tenant],
           row.id,
@@ -232,6 +234,7 @@ export async function seedCommerceDomain(migratorUrl: string, piiKey: string): P
           row.trackingRef,
           row.status,
           row.lastObservedAt,
+          row.estimatedDeliveryAt ?? null,
         ],
       );
     }

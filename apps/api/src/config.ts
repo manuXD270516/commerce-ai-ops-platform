@@ -15,6 +15,8 @@ export interface ApiConfig {
   readonly version: string;
   readonly databaseUrl: string | undefined;
   readonly redisUrl: string | undefined;
+  /** queue: BullMQ job for the worker (needs REDIS_URL); inline: run inside the API process. */
+  readonly runExecution: 'queue' | 'inline';
   /** Undefined when AUTH_ISSUER/AUTH_JWKS_FILE are unset: every domain endpoint then answers 401. */
   readonly auth: AuthConfig | undefined;
 }
@@ -35,6 +37,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ApiConfig {
     version: pkg.version,
     databaseUrl: nonEmpty(env.DATABASE_URL),
     redisUrl: nonEmpty(env.REDIS_URL),
+    runExecution: env.RUN_EXECUTION === 'inline' || !nonEmpty(env.REDIS_URL) ? 'inline' : 'queue',
     auth: loadAuth(env),
   };
 }

@@ -11,7 +11,44 @@
       "type": "string",
       "enum": ["QUEUED", "RUNNING", "WAITING_HUMAN", "COMPLETED", "FAILED", "CANCELLED"]
     },
+    "outcome": {
+      "type": ["string", "null"],
+      "enum": [
+        null,
+        "ANSWERED",
+        "CLARIFICATION_REQUESTED",
+        "REFUSED",
+        "BUDGET_EXCEEDED",
+        "ACCESS_REVOKED",
+        "CANCELLED",
+        "ACTION_EXECUTED",
+        "ACTION_REJECTED",
+        "ACTION_FAILED",
+        "ERROR"
+      ]
+    },
     "intent": { "type": ["string", "null"] },
+    "usage": { "$ref": "#/$defs/counters" },
+    "budgets": { "$ref": "#/$defs/counters" },
+    "router_version": { "type": ["string", "null"] },
+    "model_version": { "type": ["string", "null"] },
+    "prompt_version": { "type": ["string", "null"] },
+    "cancel_requested": { "type": "boolean" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" },
     "observed_at": { "type": "string", "format": "date-time" }
+  },
+  "$defs": {
+    "counters": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["llmCalls", "toolCalls", "tokens", "activeMs"],
+      "properties": {
+        "llmCalls": { "type": "integer", "minimum": 0 },
+        "toolCalls": { "type": "integer", "minimum": 0 },
+        "tokens": { "type": "integer", "minimum": 0 },
+        "activeMs": { "type": "number", "minimum": 0 }
+      }
+    }
   }
 }

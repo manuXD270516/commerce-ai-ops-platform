@@ -1,4 +1,4 @@
-/** Stable fixture identifiers from evals/fixtures/commerce-domain/0.2.0/seed.json */
+/** Stable fixture identifiers from evals/fixtures/commerce-domain/0.3.0/seed.json */
 export const FIXTURES = {
   tenants: {
     acme: '00000000-0000-4000-8000-000000000001',

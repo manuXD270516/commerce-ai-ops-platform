@@ -314,3 +314,38 @@ function toRecord(row: {
     requesterSubjectId: row.requester_subject_id,
   };
 }
+
+export type RunApprovalStatus = 'APPROVED' | 'REJECTED' | 'EXPIRED' | 'STALE' | 'FAILED';
+
+/**
+ * Decision on the latest action request of a run, read from the database. Undefined while there
+ * is no request yet (the user has not confirmed) or it is still pending and in time. EXECUTED is
+ * reported as APPROVED so a resumed run replays the stored result through idempotency.
+ */
+export async function runApprovalOutcome(
+  db: Kysely<Database>,
+  ctx: ActorContext,
+  runId: string,
+): Promise<{ status: RunApprovalStatus; actionRequestId: string } | undefined> {
+  return withUnitOfWork(db, ctx, async (trx) => {
+    const request = await trx
+      .selectFrom('action_requests')
+      .select(['id', 'status', 'expires_at'])
+      .where('run_id', '=', runId)
+      .orderBy('created_at', 'desc')
+      .executeTakeFirst();
+    if (!request) return undefined;
+    if (request.status === 'PENDING') {
+      if (request.expires_at.getTime() > Date.now()) return undefined;
+      await trx
+        .updateTable('action_requests')
+        .set({ status: 'EXPIRED' })
+        .where('id', '=', request.id)
+        .where('status', '=', 'PENDING')
+        .execute();
+      return { status: 'EXPIRED', actionRequestId: request.id };
+    }
+    const status = request.status === 'EXECUTED' ? 'APPROVED' : request.status;
+    return { status: status as RunApprovalStatus, actionRequestId: request.id };
+  });
+}

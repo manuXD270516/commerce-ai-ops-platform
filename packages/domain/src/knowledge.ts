@@ -69,6 +69,8 @@ export interface RetrievalHit {
   readonly score: number;
   readonly text: string;
   readonly trust: 'untrusted_corpus_text';
+  /** Product the document describes, for product documentation; null otherwise. */
+  readonly productId: string | null;
   readonly citation: Citation;
 }
 
@@ -311,9 +313,7 @@ export async function searchKnowledge(
     if (cached) {
       hits = cached.payload as RetrievalHit[];
     } else {
-      hits = (await hybridSearch(trx, ctx, embedder.model, vector, query, input)).map(
-        ({ productId: _productId, ...hit }) => hit,
-      );
+      hits = await hybridSearch(trx, ctx, embedder.model, vector, query, input);
       await trx
         .insertInto('retrieval_cache')
         .values({
@@ -652,9 +652,7 @@ export function chunkDocument(title: string, body: string): Chunk[] {
   return chunks;
 }
 
-interface HybridHit extends RetrievalHit {
-  readonly productId: string | null;
-}
+type HybridHit = RetrievalHit;
 
 async function hybridSearch(
   trx: DomainTrx,

@@ -13,6 +13,16 @@ import {
   type AnomalySweepResult,
 } from './anomaly-job.js';
 import {
+  AGENT_RUN_QUEUE,
+  RUN_RECOVERY_EVERY_MS,
+  RUN_RECOVERY_QUEUE,
+  RUN_RECOVERY_SCHEDULER_ID,
+  executorDeps,
+  processAgentRunJob,
+  runRecoverySweep,
+  type AgentRunJobData,
+} from './agent-run-job.js';
+import {
   DIAGNOSTIC_QUEUE,
   processDiagnosticJob,
   type DiagnosticJobData,
@@ -56,6 +66,31 @@ const anomalyWorker = db
 anomalyWorker?.on('failed', (job, error) => {
   logger.error({ job_id: job?.id, err: error.message }, 'anomaly sweep failed');
 });
+const runDeps = db ? executorDeps(db) : undefined;
+const runWorker = runDeps
+  ? new Worker<AgentRunJobData>(
+      AGENT_RUN_QUEUE,
+      (job) => processAgentRunJob(runDeps, logger, job.data),
+      {
+        connection,
+        concurrency: 4,
+      },
+    )
+  : undefined;
+runWorker?.on('failed', (job, error) => {
+  logger.error({ job_id: job?.id, err: error.message }, 'agent run failed');
+});
+const recoveryQueue = runDeps ? new Queue(RUN_RECOVERY_QUEUE, { connection }) : undefined;
+const recoveryWorker = runDeps
+  ? new Worker(RUN_RECOVERY_QUEUE, () => runRecoverySweep(runDeps, logger), {
+      connection,
+      concurrency: 1,
+    })
+  : undefined;
+await recoveryQueue?.upsertJobScheduler(RUN_RECOVERY_SCHEDULER_ID, {
+  every: RUN_RECOVERY_EVERY_MS,
+});
+
 if (anomalyQueue) {
   await anomalyQueue.upsertJobScheduler(ANOMALY_SCHEDULER_ID, { every: ANOMALY_EVERY_MS });
 } else {
@@ -88,7 +123,15 @@ const health = createHealthServer({
 });
 health.listen(healthPort, host, () => {
   logger.info(
-    { host, port: healthPort, queues: [DIAGNOSTIC_QUEUE, ...(db ? [ANOMALY_QUEUE] : [])], version },
+    {
+      host,
+      port: healthPort,
+      queues: [
+        DIAGNOSTIC_QUEUE,
+        ...(db ? [ANOMALY_QUEUE, AGENT_RUN_QUEUE, RUN_RECOVERY_QUEUE] : []),
+      ],
+      version,
+    },
     'worker ready',
   );
 });
@@ -98,6 +141,9 @@ async function shutdown(signal: string): Promise<void> {
   health.close();
   await worker.close();
   await anomalyWorker?.close();
+  await runWorker?.close();
+  await recoveryWorker?.close();
+  await recoveryQueue?.close();
   await anomalyQueue?.close();
   await db?.destroy();
   await connection.quit().catch(() => undefined);

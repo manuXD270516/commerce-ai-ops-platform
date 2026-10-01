@@ -12,6 +12,7 @@ import {
   type GateDefinition,
 } from './report.js';
 import { runRetrievalSuites } from './retrieval-suite.js';
+import { runRouterSuites } from './router-suite.js';
 import { runExactMatchSuite } from './suites.js';
 import { correlationContractTarget, simulatedProviderTarget } from './targets.js';
 
@@ -53,6 +54,8 @@ const reports: EvalReport[] = [
       'Plumbing check with one deliberate mismatch (sim-004); says nothing about any provider.',
   }),
 ];
+
+reports.push(...(await runRouterSuites(join(root, 'fixtures'))));
 
 // Suites against real code and the local database; skipped (and said so) without a database.
 const { DATABASE_ADMIN_URL: adminUrl, DATABASE_URL: runtimeUrl } = process.env;

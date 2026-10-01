@@ -289,8 +289,15 @@ async function execute(
           stale: s.stale,
           source_mode: s.sourceMode,
           last_observed_at: s.lastObservedAt,
+          estimated_delivery_at: s.estimatedDeliveryAt,
+          delay_hours: s.delayHours,
           items: s.items.map((i) => ({ order_item_id: i.orderItemId, quantity: i.quantity })),
         })),
+        escalation: {
+          required: status.escalation.required,
+          rule_version: status.escalation.ruleVersion,
+          reasons: status.escalation.reasons,
+        },
         observed_at: status.observedAt,
         source: 'sql',
       };
