@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://commerce-ai-ops.local/schemas/tools/get_product.input.schema.json",
+  "title": "GetProductInput",
+  "description": "READ. Exactly one of product_id or sku_id.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "product_id": { "type": "string", "format": "uuid" },
+    "sku_id": { "type": "string", "format": "uuid" },
+    "region": { "type": "string", "pattern": "^[a-z]{2}-[a-z]+$" }
+  },
+  "oneOf": [
+    { "required": ["product_id"], "properties": { "product_id": true } },
+    { "required": ["sku_id"], "properties": { "sku_id": true } }
+  ]
+}

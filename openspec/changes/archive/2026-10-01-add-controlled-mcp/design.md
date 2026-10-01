@@ -1,0 +1,24 @@
+## Context
+
+Milestone M5. Arquitectura transversal en [architecture.md](../../../docs/architecture.md) §4 y §6 (decisión 10); [agentes y seguridad](../../../docs/agents-security-mcp.md) (contrato MCP).
+
+## Goals / Non-Goals
+
+Objetivo: cumplir el gate de salida de M5: Contratos cliente-servidor; WRITE sin consentimiento y PRIVILEGED sin aprobación denegados. No objetivos: Aprobación humana y consumo de aprobaciones (M8).
+
+## Decisions
+
+1. **SDK y protocolo.** `@modelcontextprotocol/sdk` 1.31.0 (exacto), revisión de protocolo `2025-11-25` (`LATEST_PROTOCOL_VERSION` del SDK fijado; el SDK sigue negociando las anteriores). Transporte Streamable HTTP sin sesión (`sessionIdGenerator: undefined`, respuestas JSON): cada POST se autentica y se atiende con un servidor de protocolo nuevo ligado a esa identidad. GET/DELETE devuelven 405; cuerpos > 64 KB, 413; un `Origin` no permitido, 403 (protección DNS rebinding para clientes de navegador). La interoperabilidad se prueba con el `Client` oficial del mismo SDK.
+2. **Un único punto de enforcement.** Nuevo paquete `@commerce/tools` (`invokeTool`) usado por el servidor MCP, por la API REST de tickets y, desde M6, por los agentes en proceso. Orden fijo: nombre conocido → tamaño ≤ 16 KB → JSON Schema 2020-12 estricto (Ajv strict, `additionalProperties: false`, enums, `limit ≤ 50`, UUIDs, uno-y-sólo-uno) → intersección de scopes → comando de dominio, que vuelve a comprobar tenant (RLS), ownership, consentimiento y aprobación. Las annotations MCP (`readOnlyHint`, `destructiveHint`) y `_meta.classification` sólo informan al cliente; el servidor nunca las lee.
+3. **Schemas como contrato.** `packages/contracts/schemas/tools/<tool>.input.schema.json` y `TOOL_CLASSIFICATION` (READ/WRITE/PRIVILEGED) en `@commerce/contracts`. Ningún schema acepta tenant, subject o rol: salen del token y de la membership.
+4. **Identidad y scopes.** Subject y tenant salen del JWT ES256 de audiencia `commerce-mcp`; el rol, de la membership habilitada, releída en cada llamada (una revocación aplica de inmediato). Los tokens admiten un claim `scope` validado (`[a-z:-]`, hasta 32). Scopes efectivos = scopes del rol (policy.v1, `ROLE_SCOPES`) ∩ scopes del cliente ∩ perfil del especialista. Por MCP, un token sin `scope` no habilita ninguna tool. Admin, inventory y approver no tienen scopes de órdenes, tickets ni cancelación.
+5. **Minimización.** `check_inventory` devuelve sólo disponibilidad a customers y balances a inventory/support/admin; `get_customer` devuelve id y nombre visible, nunca email ni dirección, y con `customers:read:self` sólo el propio registro; `get_shipping_status` exige que `shipment_id` pertenezca a la orden.
+6. **Consentimiento verificable para WRITE.** Migración `0006_consents.sql`: `consents` con RLS por tenant y política restrictiva por subject. El consentimiento lo registra sólo `POST /v1/consents` con un token de audiencia API (evento autenticado de la consola), ligado a comando y hash del payload canónico del ticket, con TTL de 15 minutos y consumo único dentro de la misma transacción que crea el ticket. Texto del modelo o un campo `confirmed: true` no son consentimiento: el schema los rechaza. Reintentar con la misma `idempotency_key` devuelve el ticket existente sin volver a consumir; otra clave con el consentimiento usado falla.
+7. **Guardrails del ticket.** Contenido con credenciales, documentos de identidad, números de tarjeta, emails o teléfonos no se persiste: VALIDATION_ERROR `REQUIRES_HUMAN_REVIEW` (auditado como DENIED) para que una persona lo redacte. Límite de 5 tickets por subject por hora contado en PostgreSQL (BUDGET_EXCEEDED), así una caída de Redis no lo relaja. Customers sólo abren tickets propios; support debe indicar la orden.
+8. **PRIVILEGED cerrado.** `update_order` está publicado con su schema completo (`reason_code`, `expected_version`, `action_request_id`, `idempotency_key`) y responde APPROVAL_REQUIRED sin una solicitud aprobada válida; la aprobación y su consumo son M8.
+9. **Auditoría.** Cada llamada registra `tool.<nombre>` con `tool_call_id` como recurso, actor, resultado (ALLOWED/DENIED/ERROR), `policy_version` y `correlation_id` (header `X-Correlation-Id` validado); los comandos de dominio agregan su propia auditoría de recurso. Los argumentos libres no se escriben en el log de auditoría.
+10. **Errores.** Los errores de tool vuelven como resultado MCP con `isError: true` y `structuredContent.error.code` estable (VALIDATION_ERROR, FORBIDDEN, NOT_FOUND, CONFLICT, APPROVAL_REQUIRED, BUDGET_EXCEEDED, DEPENDENCY_UNAVAILABLE); los errores de transporte usan HTTP/JSON-RPC.
+
+## Open Questions
+
+Ninguna para M5. Delegación de tokens del worker hacia MCP (actuar en nombre del usuario) se decide en M6, donde los agentes usan `invokeTool` en proceso con el contexto del run.

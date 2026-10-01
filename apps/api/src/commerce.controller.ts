@@ -2,7 +2,6 @@ import { Body, Controller, Get, Headers, Inject, Param, Post, Req, Res } from '@
 import {
   createActionRequest,
   createAgentRun,
-  createSupportTicket,
   decideApproval,
   executeUpdateOrder,
   getAgentRun,
@@ -10,7 +9,11 @@ import {
   getShippingStatus,
   listAnomalies,
   listTickets,
+  recordConsent,
+  ticketConsentPayload,
+  DomainError,
 } from '@commerce/domain';
+import { invokeTool } from '@commerce/tools';
 import { classifyIntent, createEmbedder, runSpecialist } from '@commerce/ai';
 import type { Request, Response } from 'express';
 import { DOMAIN, DomainService } from './domain.service.js';
@@ -80,30 +83,59 @@ export class CommerceController {
     return { items: await listTickets(this.domain.requireDb(), ctx) };
   }
 
-  @Post('support-tickets')
-  async createTicket(
+  /**
+   * The user's explicit confirmation of one exact ticket payload, recorded from the authenticated
+   * console event. Agents and MCP clients cannot reach this endpoint with an MCP token.
+   */
+  @Post('consents')
+  async consent(
     @Req() req: Request,
-    @Headers('idempotency-key') idempotencyKey: string | undefined,
     @Body()
     body: {
-      customer_id: string;
-      order_id?: string;
-      category: string;
-      summary: string;
-      confirmed: boolean;
+      command?: unknown;
+      payload?: {
+        order_id?: string;
+        category?: string;
+        summary?: string;
+        evidence_refs?: { kind: string; id: string }[];
+      };
     },
   ) {
     const ctx = await this.domain.actorOf(req);
-    return createSupportTicket(this.domain.requireDb(), ctx, {
-      customerId: body.customer_id,
-      orderId: body.order_id,
-      category: body.category,
-      summary: body.summary,
-      confirmed: body.confirmed,
-      idempotencyKey: idempotencyKey ?? 'missing',
+    if (body.command !== 'create_support_ticket' || typeof body.payload !== 'object') {
+      throw new DomainError('VALIDATION_ERROR', 'command and payload are required');
+    }
+    const consent = await recordConsent(this.domain.requireDb(), ctx, {
+      command: 'create_support_ticket',
+      payload: ticketConsentPayload({
+        orderId: body.payload.order_id,
+        category: body.payload.category ?? '',
+        summary: (body.payload.summary ?? '').trim(),
+        evidenceRefs: body.payload.evidence_refs,
+      }),
     });
+    return { id: consent.id, command: consent.command, expires_at: consent.expiresAt };
   }
 
+  @Post('support-tickets')
+  async createTicket(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+    @Headers('idempotency-key') idempotencyKey: string | undefined,
+    @Body() body: Record<string, unknown>,
+  ) {
+    const ctx = await this.domain.actorOf(req);
+    // Same schema, scopes, consent and audit path as the MCP tool.
+    const result = await invokeTool(this.domain.requireDb(), ctx, {
+      name: 'create_support_ticket',
+      args: { ...body, idempotency_key: idempotencyKey ?? '' },
+    });
+    if (!result.ok) {
+      throw new DomainError(result.error.code, result.error.message, result.error.details ?? {});
+    }
+    res.status(201);
+    return result.data;
+  }
   @Post('action-requests')
   async actionRequest(
     @Req() req: Request,

@@ -4,6 +4,7 @@ export * from './actors.js';
 export * from './anomalies.js';
 export * from './approvals.js';
 export * from './catalog.js';
+export * from './consents.js';
 export * from './constants.js';
 export * from './customers.js';
 export * from './db.js';

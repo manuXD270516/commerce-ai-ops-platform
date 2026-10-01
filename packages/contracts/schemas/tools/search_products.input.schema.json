@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://commerce-ai-ops.local/schemas/tools/search_products.input.schema.json",
+  "title": "SearchProductsInput",
+  "description": "READ. Published, eligible SKUs filtered in SQL; never a reservation.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["currency"],
+  "properties": {
+    "query": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "category": { "type": "string", "enum": ["notebook", "accessory"] },
+    "currency": { "type": "string", "const": "USD" },
+    "price_lt_minor": { "type": "integer", "minimum": 1, "maximum": 100000000 },
+    "price_lte_minor": { "type": "integer", "minimum": 0, "maximum": 100000000 },
+    "ram_gb": { "type": "integer", "minimum": 1, "maximum": 1024 },
+    "cpu_family": { "type": "string", "pattern": "^[a-z0-9-]{1,32}$" },
+    "region": { "type": "string", "pattern": "^[a-z]{2}-[a-z]+$" },
+    "in_stock": { "type": "boolean" },
+    "cursor": { "type": "string", "pattern": "^[A-Za-z0-9_-]{1,200}$" },
+    "limit": { "type": "integer", "minimum": 1, "maximum": 50 }
+  },
+  "not": {
+    "required": ["price_lt_minor", "price_lte_minor"],
+    "properties": { "price_lt_minor": true, "price_lte_minor": true }
+  }
+}

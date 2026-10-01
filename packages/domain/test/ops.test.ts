@@ -11,7 +11,9 @@ import {
   getProduct,
   listCatalog,
   migrate,
+  recordConsent,
   seedCommerceDomain,
+  ticketConsentPayload,
 } from '../src/index.js';
 
 const adminUrl = process.env.DATABASE_ADMIN_URL;
@@ -147,36 +149,78 @@ describe.skipIf(!enabled)('catalog, tickets and approvals', () => {
     }
   });
 
-  it('requires confirmation for tickets and deduplicates retries', async () => {
+  it('requires a recorded consent for tickets and deduplicates retries', async () => {
+    const ticket = {
+      orderId: FIXTURES.orders.anaPartial,
+      category: 'delivery_delay' as const,
+      summary: 'Mi paquete está atrasado',
+    };
     await expect(
       createSupportTicket(db, ana, {
-        customerId: FIXTURES.customers.ana,
-        orderId: FIXTURES.orders.anaPartial,
-        category: 'shipping',
-        summary: 'Mi paquete está atrasado',
-        confirmed: false,
+        ...ticket,
+        consentId: '00000000-0000-4000-8000-0000000000aa',
         idempotencyKey: 'tix-1',
       }),
-    ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
+    ).rejects.toMatchObject({ code: 'VALIDATION_ERROR', details: { reason: 'CONSENT_NOT_FOUND' } });
+    const consent = await recordConsent(db, ana, {
+      command: 'create_support_ticket',
+      payload: ticketConsentPayload(ticket),
+    });
     const first = await createSupportTicket(db, ana, {
-      customerId: FIXTURES.customers.ana,
-      orderId: FIXTURES.orders.anaPartial,
-      category: 'shipping',
-      summary: 'Mi paquete está atrasado',
-      confirmed: true,
+      ...ticket,
+      consentId: consent.id,
       idempotencyKey: 'tix-1',
     });
     const second = await createSupportTicket(db, ana, {
-      customerId: FIXTURES.customers.ana,
-      orderId: FIXTURES.orders.anaPartial,
-      category: 'shipping',
-      summary: 'Mi paquete está atrasado',
-      confirmed: true,
+      ...ticket,
+      consentId: consent.id,
       idempotencyKey: 'tix-1',
     });
     expect(second.id).toBe(first.id);
+    expect(first.customerId).toBe(FIXTURES.customers.ana);
+    await expect(
+      createSupportTicket(db, support, {
+        ...ticket,
+        consentId: consent.id,
+        idempotencyKey: 'tix-2',
+      }),
+    ).rejects.toMatchObject({ details: { reason: 'CONSENT_NOT_FOUND' } });
+    await expect(
+      createSupportTicket(db, inventory, {
+        ...ticket,
+        consentId: consent.id,
+        idempotencyKey: 'tix-3',
+      }),
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' });
   });
 
+  it('limits ticket creation per subject in PostgreSQL', async () => {
+    const created: string[] = [];
+    let limited: unknown;
+    for (let i = 0; i < 6; i++) {
+      const ticket = {
+        category: 'other' as const,
+        summary: `Consulta general número ${String(i)}`,
+      };
+      const consent = await recordConsent(db, support, {
+        command: 'create_support_ticket',
+        payload: ticketConsentPayload({ ...ticket, orderId: FIXTURES.orders.benConfirmed }),
+      });
+      try {
+        const t = await createSupportTicket(db, support, {
+          ...ticket,
+          orderId: FIXTURES.orders.benConfirmed,
+          consentId: consent.id,
+          idempotencyKey: `rate-${String(i)}-key`,
+        });
+        created.push(t.id);
+      } catch (error) {
+        limited = error;
+      }
+    }
+    expect(created).toHaveLength(5);
+    expect(limited).toMatchObject({ code: 'BUDGET_EXCEEDED' });
+  });
   it('consumes an approval once and rejects replay, stale payload and self-approval', async () => {
     const request = await createActionRequest(db, support, {
       tool: 'update_order',

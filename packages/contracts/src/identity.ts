@@ -16,12 +16,18 @@ export const MAX_TOKEN_TTL_SECONDS = 3600;
 const CLOCK_SKEW_SECONDS = 30;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SUBJECT_PATTERN = /^[A-Za-z0-9._:@-]{1,128}$/;
+const SCOPE_PATTERN = /^[a-z][a-z:-]{0,63}( [a-z][a-z:-]{0,63}){0,31}$/;
 
 export interface VerifiedIdentity {
   readonly subject: string;
   readonly tenantId: string;
   readonly audience: Audience;
   readonly expiresAt: Date;
+  /**
+   * OAuth-style `scope` claim granted to the client. Undefined when the token carries none; an
+   * entry point decides whether that means no client restriction (API) or no tools (MCP).
+   */
+  readonly scopes?: readonly string[];
 }
 
 export interface Jwks {
@@ -82,7 +88,17 @@ export function verifyAccessToken(token: string, options: VerifyOptions): Verifi
   if (typeof tenantId !== 'string' || !UUID_PATTERN.test(tenantId)) {
     throw new AccessTokenError('tenant_id');
   }
-  return { subject: sub, tenantId, audience: options.audience, expiresAt: new Date(exp * 1000) };
+  const { scope } = claims;
+  if (scope !== undefined && (typeof scope !== 'string' || !SCOPE_PATTERN.test(scope))) {
+    throw new AccessTokenError('scope');
+  }
+  return {
+    subject: sub,
+    tenantId,
+    audience: options.audience,
+    expiresAt: new Date(exp * 1000),
+    ...(scope === undefined ? {} : { scopes: scope.split(' ') }),
+  };
 }
 
 export interface LocalIssuerKeys {
@@ -101,7 +117,7 @@ export function generateLocalIssuerKeys(): LocalIssuerKeys {
 }
 
 export function signAccessToken(
-  input: { subject: string; tenantId: string; audience: Audience },
+  input: { subject: string; tenantId: string; audience: Audience; scopes?: readonly string[] },
   options: {
     issuer: string;
     privateJwk: JsonWebKey & { kid: string };
@@ -116,6 +132,7 @@ export function signAccessToken(
     aud: input.audience,
     sub: input.subject,
     tenant_id: input.tenantId,
+    ...(input.scopes ? { scope: input.scopes.join(' ') } : {}),
     iat,
     exp: iat + (options.ttlSeconds ?? 900),
     jti: randomUUID(),

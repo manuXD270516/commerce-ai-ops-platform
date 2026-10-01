@@ -188,6 +188,18 @@ export interface TicketsTable {
   created_at: Generated<Date>;
 }
 
+export interface ConsentsTable {
+  tenant_id: string;
+  id: string;
+  subject_id: string;
+  command: string;
+  payload_hash: string;
+  run_id: string | null;
+  created_at: Generated<Date>;
+  expires_at: Date;
+  consumed_at: Date | null;
+}
+
 export interface DocumentsTable {
   tenant_id: string;
   id: string;
@@ -406,6 +418,7 @@ export interface Database {
   idempotency_records: IdempotencyRecordsTable;
   anomalies: AnomaliesTable;
   retrieval_cache: RetrievalCacheTable;
+  consents: ConsentsTable;
 }
 
 export type DomainDb = Kysely<Database>;

@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://commerce-ai-ops.local/schemas/tools/get_customer.input.schema.json",
+  "title": "GetCustomerInput",
+  "description": "READ. Minimal profile: no address, no full email.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["customer_id"],
+  "properties": { "customer_id": { "type": "string", "format": "uuid" } }
+}

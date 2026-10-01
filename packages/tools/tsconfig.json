@@ -1,0 +1,8 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "customConditions": ["@commerce/source"],
+    "noEmit": true
+  },
+  "include": ["src", "test"]
+}

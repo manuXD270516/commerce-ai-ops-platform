@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://commerce-ai-ops.local/schemas/tools/check_inventory.input.schema.json",
+  "title": "CheckInventoryInput",
+  "description": "READ. Customers see availability; inventory, support and admin also see balances.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["sku_ids"],
+  "properties": {
+    "sku_ids": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 50,
+      "uniqueItems": true,
+      "items": { "type": "string", "format": "uuid" }
+    },
+    "region": { "type": "string", "pattern": "^[a-z]{2}-[a-z]+$" }
+  }
+}

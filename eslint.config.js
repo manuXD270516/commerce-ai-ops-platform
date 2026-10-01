@@ -88,7 +88,7 @@ export default defineConfig(
   {
     files: ['packages/domain/**/*.ts'],
     rules: restrictImports(
-      [...APP_PACKAGES, '@commerce/ai', 'next', 'react', 'bullmq'],
+      [...APP_PACKAGES, '@commerce/ai', '@commerce/tools', 'next', 'react', 'bullmq'],
       [
         { group: ['**/apps/**'], message: 'Packages must not import apps.' },
         {

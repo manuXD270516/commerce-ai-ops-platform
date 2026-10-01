@@ -2,7 +2,7 @@ schema: spec-driven
 
 context: |
   Proyecto: commerce-ai-ops-platform. Idioma: español.
-  Fase actual: M0 a M3 archivados el 2026-09-29 y M4 el 2026-10-01; un change por milestone.
+  Fase actual: M0 a M3 archivados el 2026-09-29 y M4–M5 el 2026-10-01; un change por milestone.
   El usuario autorizó avanzar M2–M11 (2026-09-29): sin claves de IA, modelos locales o
   simulados etiquetados SIMULATED; M11 se prueba contra un emulador AWS open-source (Floci).
   Arquitectura viva: docs/architecture.md; alcance: docs/mvp-scope.md.

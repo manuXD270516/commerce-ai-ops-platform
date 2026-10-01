@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://commerce-ai-ops.local/schemas/tools/get_shipping_status.input.schema.json",
+  "title": "GetShippingStatusInput",
+  "description": "READ. Every package of the order with freshness; shipment_id must belong to the order.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["order_id"],
+  "properties": {
+    "order_id": { "type": "string", "format": "uuid" },
+    "shipment_id": { "type": "string", "format": "uuid" }
+  }
+}

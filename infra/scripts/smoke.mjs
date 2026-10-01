@@ -3,7 +3,7 @@
 // logs. Requires `pnpm build` and `pnpm infra:up` (or infra:up:tracing with --tracing).
 // Writes a MEASURED report to .smoke/<run>/ and exits 1 on any failed check.
 import { spawn, execFileSync } from 'node:child_process';
-import { createWriteStream, existsSync } from 'node:fs';
+import { createWriteStream, existsSync, readFileSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
@@ -155,6 +155,50 @@ try {
     body: '{}',
   });
   check('commerce-mcp-server requires authentication on /mcp', mcp.status === 401);
+
+  const contracts = await import(
+    pathToFileURL(join(root, 'packages', 'contracts', 'dist', 'index.js')).href
+  );
+  const mcpToken = contracts.signAccessToken(
+    {
+      subject: 'acme-customer-ana',
+      tenantId: '00000000-0000-4000-8000-000000000001',
+      audience: contracts.AUDIENCES.mcp,
+      scopes: ['orders:read'],
+    },
+    {
+      issuer: process.env.AUTH_ISSUER,
+      privateJwk: JSON.parse(
+        readFileSync(
+          join(root, process.env.AUTH_SIGNING_KEY_FILE ?? '.local/auth/issuer-private.jwk.json'),
+          'utf8',
+        ),
+      ),
+    },
+  );
+  const mcpCall = await fetch(`http://127.0.0.1:${process.env.MCP_PORT ?? 3003}/mcp`, {
+    method: 'POST',
+    headers: {
+      authorization: `Bearer ${mcpToken}`,
+      'content-type': 'application/json',
+      accept: 'application/json, text/event-stream',
+    },
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'tools/call',
+      params: {
+        name: 'get_order',
+        arguments: { order_id: '00000000-0000-4000-8000-000000000401' },
+      },
+    }),
+  });
+  const mcpBody = mcpCall.status === 200 ? await mcpCall.json() : undefined;
+  check(
+    'commerce-mcp-server serves get_order to an authenticated, scoped client',
+    mcpBody?.result?.isError === false &&
+      mcpBody.result.structuredContent?.data?.id === '00000000-0000-4000-8000-000000000401',
+  );
 
   const unauthenticated = await fetch(
     `http://127.0.0.1:${process.env.API_PORT ?? 3001}/v1/products`,

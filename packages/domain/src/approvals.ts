@@ -144,6 +144,7 @@ export async function executeUpdateOrder(
   input: {
     orderId: string;
     action: 'request_cancellation';
+    reasonCode?: string;
     expectedVersion: number;
     actionRequestId: string;
     idempotencyKey: string;

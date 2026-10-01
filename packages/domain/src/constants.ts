@@ -23,3 +23,7 @@ export const DEMAND_WINDOW_DAYS = 7;
 export const MIN_DEMAND_DAYS = 3;
 /** Stock counts older than this are not "vigente" and cannot raise a discrepancy. */
 export const STOCK_COUNT_MAX_AGE_MS = 72 * 60 * 60 * 1000;
+/** A WRITE consent recorded by the UI is valid this long and consumed at most once (M5). */
+export const CONSENT_TTL_MS = 15 * 60 * 1000;
+/** Ticket creation limit per subject, enforced in PostgreSQL so a Redis outage cannot relax it. */
+export const TICKETS_PER_SUBJECT_PER_HOUR = 5;

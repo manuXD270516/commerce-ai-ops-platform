@@ -1,21 +1,25 @@
 {
-  "name": "@commerce/commerce-mcp-server",
+  "name": "@commerce/tools",
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "exports": {
+    ".": {
+      "@commerce/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run",
-    "start": "node --env-file-if-exists=../../.env --import ./dist/instrumentation.js dist/main.js"
+    "test": "vitest run"
   },
   "dependencies": {
     "@commerce/contracts": "workspace:*",
     "@commerce/domain": "workspace:*",
-    "@commerce/telemetry": "workspace:*",
-    "@commerce/tools": "workspace:*",
-    "@modelcontextprotocol/sdk": "1.31.0",
-    "pino": "10.3.1"
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1"
   },
   "devDependencies": {
     "@types/pg": "8.23.1",

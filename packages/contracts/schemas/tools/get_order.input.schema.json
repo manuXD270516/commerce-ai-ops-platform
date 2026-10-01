@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://commerce-ai-ops.local/schemas/tools/get_order.input.schema.json",
+  "title": "GetOrderInput",
+  "description": "READ. Customers only see their own orders; NOT_FOUND hides foreign ones.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["order_id"],
+  "properties": { "order_id": { "type": "string", "format": "uuid" } }
+}

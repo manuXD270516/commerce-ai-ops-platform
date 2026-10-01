@@ -8,6 +8,11 @@ import { appendAudit, withUnitOfWork } from './uow.js';
 
 export interface CatalogFilters {
   readonly productId?: string;
+  readonly skuId?: string;
+  /** Full-text match on product title and description (simple configuration). */
+  readonly text?: string;
+  /** Only SKUs with available stock (on_hand - reserved > 0) in the matched warehouse. */
+  readonly inStock?: boolean;
   readonly category?: string;
   readonly currency?: string;
   readonly priceLt?: number;
@@ -101,6 +106,13 @@ export async function listCatalog(
       .where('s.currency', '=', filters.currency ?? 'USD');
 
     if (filters.productId) query = query.where('p.id', '=', filters.productId);
+    if (filters.skuId) query = query.where('s.id', '=', filters.skuId);
+    if (filters.text) {
+      query = query.where(
+        sql<boolean>`to_tsvector('simple', p.title || ' ' || p.description) @@ plainto_tsquery('simple', ${filters.text})`,
+      );
+    }
+    if (filters.inStock === true) query = query.where(sql<boolean>`b.on_hand - b.reserved > 0`);
     if (filters.category) query = query.where('p.category', '=', filters.category);
     if (filters.priceLt !== undefined)
       query = query.where('s.price_minor', '<', String(filters.priceLt));

@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://commerce-ai-ops.local/schemas/tools/create_support_ticket.input.schema.json",
+  "title": "CreateSupportTicketInput",
+  "description": "WRITE. Requires a consent recorded by an authenticated UI event for this exact payload.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["category", "summary", "consent_id", "idempotency_key"],
+  "properties": {
+    "order_id": { "type": "string", "format": "uuid" },
+    "category": {
+      "type": "string",
+      "enum": ["delivery_delay", "lost_package", "damaged_item", "cancellation", "other"]
+    },
+    "summary": { "type": "string", "minLength": 10, "maxLength": 500 },
+    "evidence_refs": {
+      "type": "array",
+      "maxItems": 10,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind", "id"],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": ["order", "shipment", "document_version", "anomaly"]
+          },
+          "id": { "type": "string", "format": "uuid" }
+        }
+      }
+    },
+    "consent_id": { "type": "string", "format": "uuid" },
+    "idempotency_key": { "type": "string", "pattern": "^[A-Za-z0-9._:-]{8,128}$" }
+  }
+}

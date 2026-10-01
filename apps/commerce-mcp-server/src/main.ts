@@ -4,7 +4,7 @@ import { isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Jwks } from '@commerce/contracts';
 import { createLogger, shutdownTracing } from '@commerce/telemetry';
-import { createMcpServer, type McpAuthConfig } from './server.js';
+import { createMcpServer, MCP_PROTOCOL, MCP_SDK_VERSION, type McpAuthConfig } from './server.js';
 
 const logger = createLogger({ service: 'commerce-mcp-server' });
 const version = (createRequire(import.meta.url)('../package.json') as { version: string }).version;
@@ -24,7 +24,10 @@ const auth = loadAuth();
 if (!auth) logger.warn('AUTH_ISSUER/AUTH_JWKS_FILE unset: every MCP call will answer 401');
 const server = createMcpServer(version, process.env.DATABASE_URL, auth);
 server.listen(port, host, () => {
-  logger.info({ host, port, version, protocol: '2025-06-18' }, 'mcp server ready');
+  logger.info(
+    { host, port, version, protocol: MCP_PROTOCOL, sdk: MCP_SDK_VERSION },
+    'mcp server ready',
+  );
 });
 
 async function shutdown(signal: string): Promise<void> {

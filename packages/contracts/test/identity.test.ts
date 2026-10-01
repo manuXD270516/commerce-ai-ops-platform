@@ -78,4 +78,19 @@ describe('access tokens', () => {
     expect(bearerToken('Basic abc')).toBeUndefined();
     expect(bearerToken(undefined)).toBeUndefined();
   });
+
+  it('carries client scopes only as a well-formed scope claim', () => {
+    const scoped = signAccessToken(
+      { subject: 'acme-ana', tenantId: TENANT, audience: AUDIENCES.mcp, scopes: ['orders:read'] },
+      { issuer: ISSUER, privateJwk: keys.privateJwk, now },
+    );
+    const options = { issuer: ISSUER, audience: AUDIENCES.mcp, jwks: keys.jwks, now };
+    expect(verifyAccessToken(scoped, options).scopes).toEqual(['orders:read']);
+    expect(verifyAccessToken(token({ audience: AUDIENCES.mcp }), options).scopes).toBeUndefined();
+    const forged = signAccessToken(
+      { subject: 'acme-ana', tenantId: TENANT, audience: AUDIENCES.mcp, scopes: ['Orders;DROP'] },
+      { issuer: ISSUER, privateJwk: keys.privateJwk, now },
+    );
+    expect(reason(() => verifyAccessToken(forged, options))).toBe('scope');
+  });
 });

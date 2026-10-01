@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://commerce-ai-ops.local/schemas/tools/update_order.input.schema.json",
+  "title": "UpdateOrderInput",
+  "description": "PRIVILEGED. Only request_cancellation, bound to an approved action request.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "order_id",
+    "action",
+    "reason_code",
+    "expected_version",
+    "action_request_id",
+    "idempotency_key"
+  ],
+  "properties": {
+    "order_id": { "type": "string", "format": "uuid" },
+    "action": { "type": "string", "const": "request_cancellation" },
+    "reason_code": {
+      "type": "string",
+      "enum": ["customer_request", "duplicate_order", "delivery_too_late", "other"]
+    },
+    "expected_version": { "type": "integer", "minimum": 1 },
+    "action_request_id": { "type": "string", "format": "uuid" },
+    "idempotency_key": { "type": "string", "pattern": "^[A-Za-z0-9._:-]{8,128}$" }
+  }
+}

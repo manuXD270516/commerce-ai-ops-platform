@@ -2,7 +2,7 @@
 
 Plataforma de operaciones e-commerce con APIs de dominio, búsqueda híbrida, workflows asistidos por IA y acciones auditables mediante MCP.
 
-**Estado: M0 (bootstrap), M1 (modelo de dominio), M2 (API de catálogo con identidad verificada), M3 (órdenes, inventario y detector de anomalías) y M4 (recuperación híbrida versionada) completados; M5–M11 en curso.** Existe el monorepo con web, API, worker y servidor MCP, entorno local, CI, harness de evals y tracing, y un modelo relacional multi-tenant con RLS, snapshots, outbox, auditoría e idempotencia (`pnpm db:migrate`, `pnpm db:seed`). Hay código preliminar de milestones posteriores que aún no está verificado contra sus changes. No hay llamadas a modelos de terceros ni recursos cloud: los embeddings son un hashing local determinístico (`local-hash-v1`) y los modelos ONNX abiertos quedan como opción apagada. La página web es un scaffold técnico, no la consola de M9. Datos de demostración sintéticos, USD, una región logística y dos tenants de prueba para verificar aislamiento. Transportistas y notificaciones serán simulados y visibles como tales. PostgreSQL contendrá datos relacionales operativos; las respuestas no dependerán de hechos inventados por el modelo.
+**Estado: M0 (bootstrap), M1 (modelo de dominio), M2 (API de catálogo con identidad verificada), M3 (órdenes, inventario y detector de anomalías), M4 (recuperación híbrida versionada) y M5 (servidor MCP con ocho tools clasificadas) completados; M6–M11 en curso.** Existe el monorepo con web, API, worker y servidor MCP, entorno local, CI, harness de evals y tracing, y un modelo relacional multi-tenant con RLS, snapshots, outbox, auditoría e idempotencia (`pnpm db:migrate`, `pnpm db:seed`). Hay código preliminar de milestones posteriores que aún no está verificado contra sus changes. No hay llamadas a modelos de terceros ni recursos cloud: los embeddings son un hashing local determinístico (`local-hash-v1`) y los modelos ONNX abiertos quedan como opción apagada. La página web es un scaffold técnico, no la consola de M9. Datos de demostración sintéticos, USD, una región logística y dos tenants de prueba para verificar aislamiento. Transportistas y notificaciones serán simulados y visibles como tales. PostgreSQL contendrá datos relacionales operativos; las respuestas no dependerán de hechos inventados por el modelo.
 
 ## Documentación
 
@@ -20,8 +20,9 @@ Plataforma de operaciones e-commerce con APIs de dominio, búsqueda híbrida, wo
 apps/web                  Next.js 16: página de estado y /api/status (diagnóstico web → API)
 apps/api                  NestJS 12: /healthz, /readyz, /v1/status
 apps/worker               BullMQ: cola de diagnóstico sin payload de negocio
-apps/commerce-mcp-server  Sólo probes; el endpoint MCP autenticado llega en M5
-packages/contracts        JSON Schema 2020-12, OpenAPI 3.1, tipos generados, correlation id
+apps/commerce-mcp-server  MCP Streamable HTTP autenticado (SDK 1.31.0, protocolo 2025-11-25), ocho tools
+packages/contracts        JSON Schema 2020-12 (incluidos los inputs de tools), OpenAPI 3.1, tipos, correlation id
+packages/tools            Enforcement único de tools: schema, scopes, consentimiento, auditoría
 packages/domain           Servicios de aplicación desde M1 (sin frameworks ni IA)
 packages/ai               Adaptadores de proveedor desde M6 (hoy sólo ProviderMode)
 packages/telemetry        Logs JSON, correlación, OpenTelemetry y probes
