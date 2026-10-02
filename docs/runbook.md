@@ -100,7 +100,7 @@ Decisión del dueño del repo (2026-10-01): el destino es Azure Kubernetes Servi
 1. Suscripción de Azure y región con AKS, PostgreSQL Flexible Server 17 (pgvector) y Azure Cache for Redis.
 2. Presupuesto mensual y destinatarios de alertas.
 3. Dominio y certificado TLS: un certificado en Key Vault (`TLS_CERT_KEYVAULT_URI`) y el registro DNS del host público hacia la IP del ingress de app-routing.
-4. GitHub: environment `aks-demo` con la credencial federada que crea Terraform, y variables `DEPLOY_ENABLED`, `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `AZURE_RESOURCE_GROUP`, `AZURE_AKS_NAME`, `AZURE_ACR_NAME`, `AZURE_KEY_VAULT_NAME`, `AZURE_WORKLOAD_CLIENT_ID`, `PUBLIC_HOST`, `TLS_CERT_KEYVAULT_URI`, `DATA_SUBNETS_CIDR`. GitHub Actions hoy está bloqueado por billing.
+4. GitHub: environment `aks-demo` con la credencial federada que crea Terraform, y variables `DEPLOY_ENABLED`, `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`, `AZURE_RESOURCE_GROUP`, `AZURE_AKS_NAME`, `AZURE_ACR_NAME`, `AZURE_KEY_VAULT_NAME`, `AZURE_WORKLOAD_CLIENT_ID`, `PUBLIC_HOST`, `TLS_CERT_KEYVAULT_URI`, `DATA_SUBNETS_CIDR`. El CI (`ci.yml`) ya corre en GitHub Actions; `deploy.yml` nunca se ejecutó.
 5. Un emisor de identidad real para producción: el sign-in de demo de la consola no es un IdP.
 
 ### Costo orientativo

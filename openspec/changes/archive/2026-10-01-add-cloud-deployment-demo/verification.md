@@ -43,6 +43,13 @@ Demo (`pnpm prod:demo`) 18/18 sobre `https://localhost:8443` — [`m11-demo-…-
 | Backup/restore aislado (escenario "Restore rehearsal") | conteos por tabla, estado de runs, último evento de auditoría, 72 FKs sin huérfanos, 45 políticas en 36 tablas con RLS, 9 migraciones | dump 0,40 s (214 KiB); restore total 4,8 s |
 | Persistencia | ningún ensayo resetea datos (agent_runs 11 → 14; corrección `seed --if-empty`) | — |
 
+### CI remoto (GitHub Actions, 2026-10-02)
+
+Run [36950747121](https://github.com/manuXD270516/commerce-ai-ops-platform/actions/runs/36950747121) sobre `d80b255`: `checks`, `smoke` y `prod-like` en verde. `prod-like` ejecuta en un runner Linux limpio `prod:secrets`, `prod:up`, `prod:demo`, `prod:drill` y `k8s:local`. Dos defectos aparecieron sólo allí y se corrigieron:
+
+- Run 36948714811 (`9877b38`): `migrate` salía con 1 porque `prod:secrets` escribía los secretos 0600 a nombre del usuario del runner (uid 1001) y las imágenes corren como `node` (uid 1000); Docker Desktop en Windows ocultaba los permisos. Reproducido con un volumen Linux; ahora 0444 dentro de un directorio 0700 (`bb62412`). El job imprime `docker compose ps/logs` si falla.
+- Run 36949783303 (`bb62412`): el ensayo de Redis vio dos eventos `completed` en un run. El lease usaba el `workerId` del proceso, así que la notificación tardía de la cola y el sweep de recuperación del mismo worker lo reclamaban a la vez (el efecto aprobado igual se ejecutó una sola vez). Ahora el lease es por ejecución, con un test de regresión que fallaba antes (`d80b255`).
+
 ### Costo
 
 Costo incurrido: 0. Estimación orientativa de la topología AKS por defecto en el runbook (orden de USD 120–180/mes, sin verificar por región); no es de costo cero.
@@ -50,5 +57,5 @@ Costo incurrido: 0. Estimación orientativa de la topología AKS por defecto en 
 ## Pendiente (fuera del alcance acordado)
 
 - Aplicar en Azure: requiere autorización, suscripción, región, presupuesto, DNS/TLS y credencial federada de GitHub. Lo no verificable sin Azure (driver CSI con Key Vault, app-routing, workload identity, admin no superusuario de Flexible Server, private endpoints) se probará al aplicar.
-- `deploy.yml` y el job `prod-like` de CI nunca se ejecutaron (GitHub Actions bloqueado por billing).
+- `deploy.yml` nunca se ejecutó (requiere la infraestructura de Azure). El job `prod-like` de CI ya corre en verde (ver arriba).
 - Point-in-time restore gestionado no ensayado; sólo pg_dump/pg_restore local.
