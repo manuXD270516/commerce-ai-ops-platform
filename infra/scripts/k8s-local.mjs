@@ -9,7 +9,7 @@
 //   6. delete the cluster (unless --keep)
 // Usage: pnpm k8s:local [--keep]   Requires Docker, pnpm build and pnpm prod:secrets.
 import { execFileSync, spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createChecks, root, waitUntil, writeRunReport } from './prod-lib.mjs';
 
@@ -143,7 +143,52 @@ function migrateResult() {
     : 'no successful migration pod';
 }
 
+/**
+ * Cluster state for a failed run, captured before the cluster is deleted: workloads, events, the
+ * migration Job and the logs of every migration attempt and app. Printed and saved under .smoke/.
+ */
+function dumpDiagnostics() {
+  const sections = [
+    ['nodes', ['get', 'nodes', '-o', 'wide']],
+    ['commerce objects', ['-n', 'commerce', 'get', 'all,pvc,networkpolicy,secret', '-o', 'wide']],
+    ['commerce events', ['-n', 'commerce', 'get', 'events', '--sort-by=.lastTimestamp']],
+    ['migration job', ['-n', 'commerce', 'describe', 'job/migrate']],
+    [
+      'migration pod logs',
+      [
+        '-n',
+        'commerce',
+        'logs',
+        '-l',
+        'job-name=migrate',
+        '--prefix',
+        '--tail=60',
+        '--ignore-errors',
+      ],
+    ],
+    ['postgres logs', ['-n', 'commerce', 'logs', 'statefulset/postgres', '--tail=60']],
+    ['api logs', ['-n', 'commerce', 'logs', 'deployment/api', '--tail=60']],
+    ['worker logs', ['-n', 'commerce', 'logs', 'deployment/worker', '--tail=60']],
+    ['kube-system pods', ['-n', 'kube-system', 'get', 'pods', '-o', 'wide']],
+  ];
+  const text = sections
+    .map(([title, args]) => {
+      const r = spawnSync('docker', ['exec', NAME, 'kubectl', ...args], { encoding: 'utf8' });
+      return `===== ${title}: kubectl ${args.join(' ')}\n${r.stdout ?? ''}${r.stderr ?? ''}`;
+    })
+    .join('\n');
+  const dir = join(root, '.smoke');
+  mkdirSync(dir, { recursive: true });
+  const file = join(
+    dir,
+    `k8s-diagnostics-${startedAt.toISOString().replace(/[-:.]/g, '').slice(0, 15)}.txt`,
+  );
+  writeFileSync(file, text);
+  console.log(`\n${text}\nDiagnostics: ${file}`);
+}
+
 function cleanup() {
+  if (checks.some((c) => !c.ok)) dumpDiagnostics();
   if (keep) {
     console.log(`cluster kept: docker exec -it ${NAME} kubectl -n commerce get pods`);
     return;

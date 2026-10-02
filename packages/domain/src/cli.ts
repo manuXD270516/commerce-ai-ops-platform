@@ -11,6 +11,7 @@ import {
   seedKnowledgeCorpus,
   type MigrateUrls,
 } from './index.js';
+import { waitForDatabase } from './wait-for-db.js';
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '../../..');
 
@@ -43,6 +44,15 @@ async function hasTenants(migratorUrl: string): Promise<boolean> {
 
 loadEnv();
 const command = process.argv[2] ?? 'migrate';
+if (command === 'migrate' || command === 'seed') {
+  const result = await waitForDatabase(urls().adminUrl, {
+    timeoutMs: Number(process.env.DATABASE_WAIT_SECONDS ?? 120) * 1000,
+    log: (message) => {
+      console.error(message);
+    },
+  });
+  if (result.attempts > 1) console.error(JSON.stringify({ databaseReachableAfter: result }));
+}
 if (command === 'migrate') {
   const ran = await migrate(urls());
   console.log(JSON.stringify({ ran }));

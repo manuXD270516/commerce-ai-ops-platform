@@ -10,8 +10,10 @@ metadata:
     app.kubernetes.io/name: migrate
     app.kubernetes.io/component: migrate
 spec:
-  # Retries with exponential back-off cover a database or network policy that is not ready yet.
-  backoffLimit: 6
+  # The CLI itself waits up to DATABASE_WAIT_SECONDS for the database, in the same pod: a new pod
+  # gets a new address, which the network policy may not admit yet (refused connections), so
+  # Job-level retries alone can keep losing that race on a slow node. They remain a backstop.
+  backoffLimit: 4
   activeDeadlineSeconds: 900
   ttlSecondsAfterFinished: 86400
   template:
@@ -40,6 +42,8 @@ spec:
               value: /run/secrets/app/database_url
             - name: PII_ENCRYPTION_KEY_FILE
               value: /run/secrets/app/pii_key
+            - name: DATABASE_WAIT_SECONDS
+              value: '180'
           resources:
             requests: { cpu: 100m, memory: 256Mi }
             limits: { cpu: 500m, memory: 512Mi }
