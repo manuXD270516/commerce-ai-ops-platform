@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { Command } from '@langchain/langgraph';
 import { trace } from '@opentelemetry/api';
 import {
@@ -82,7 +83,11 @@ async function driveRun(
   runId: string,
 ): Promise<ExecutionReport> {
   const { db } = deps;
-  const claimed = await claimAgentRun(db, tenantId, runId, deps.workerId, deps.leaseMs ?? 120_000);
+  // The lease belongs to this execution, not to the process: one worker runs several jobs at
+  // once (queue notifications and the recovery sweep), and a process-wide owner let two of them
+  // claim the same run concurrently and record it twice.
+  const leaseOwner = `${deps.workerId}:${randomUUID().slice(0, 8)}`;
+  const claimed = await claimAgentRun(db, tenantId, runId, leaseOwner, deps.leaseMs ?? 120_000);
   if (!claimed) return { runId, status: 'SKIPPED' };
   const executor = executorActor(tenantId);
   try {
@@ -187,7 +192,7 @@ async function driveRun(
     });
     throw error;
   } finally {
-    await releaseAgentRun(db, tenantId, runId, deps.workerId);
+    await releaseAgentRun(db, tenantId, runId, leaseOwner);
   }
 }
 

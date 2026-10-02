@@ -247,6 +247,22 @@ describe.skipIf(!enabled)('supervisor graph with durable PostgreSQL checkpoints 
     });
   });
 
+  it('runs once when one worker process drives the same run from two jobs at the same time', async () => {
+    // Regression (CI recovery drill): a queue notification and the recovery sweep of the same
+    // worker process share its workerId; the lease must still admit only one of them.
+    const run = await start(ana, `¿Dónde está mi pedido ${FIXTURES.orders.anaPartial}?`);
+    const shared = worker('worker-shared');
+    const reports = await Promise.all([
+      executeRun(shared, ACME, run.id),
+      executeRun(shared, ACME, run.id),
+    ]);
+    expect(reports.map((r) => r.status).sort()).toEqual(['COMPLETED', 'SKIPPED']);
+    const completed = (await listRunEvents(db, ana, run.id)).filter(
+      (e) => (e.data as { type?: string }).type === 'completed',
+    );
+    expect(completed).toHaveLength(1);
+  });
+
   it('cancels a queued run so no worker starts it, and hides runs from other customers', async () => {
     const run = await start(ana, `¿Dónde está mi pedido ${FIXTURES.orders.anaPartial}?`);
     await expect(getAgentRun(db, ben, run.id)).rejects.toMatchObject({ code: 'NOT_FOUND' });

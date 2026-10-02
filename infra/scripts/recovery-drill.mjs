@@ -209,11 +209,13 @@ async function redisDrill() {
         `SELECT status || ':' || version FROM commerce.orders WHERE id = '${pending.orderId}'`,
       ) === 'CANCELLATION_REQUESTED:2',
   );
+  const completedEvents = psql(
+    `SELECT string_agg(n::text, ',' ORDER BY run_id) FROM (SELECT run_id, count(*) AS n FROM commerce.run_events WHERE run_id IN ('${queued.body.id}', '${pending.runId}') AND data->>'type' = 'completed' GROUP BY run_id) s`,
+  );
   check(
     'redis back: each run has a single completed event',
-    psql(
-      `SELECT string_agg(n::text, ',') FROM (SELECT count(*) AS n FROM commerce.run_events WHERE run_id IN ('${queued.body.id}', '${pending.runId}') AND data->>'type' = 'completed' GROUP BY run_id) s`,
-    ) === '1,1',
+    completedEvents === '1,1',
+    `completed events per run: ${completedEvents}`,
   );
   const logs = compose(['logs', 'worker', '--since', '5m']);
   check('redis back: the worker re-registered its schedulers', logs.includes('redis reconnected'));
