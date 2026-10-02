@@ -15,7 +15,7 @@ Operación del MVP en el entorno **production-like local** (`infra/compose.prod.
 | `postgres` (pgvector pg17), `redis` | pinneadas por digest | `data` (`internal: true`) | no |
 
 - Imágenes inmutables: un único `infra/docker/Dockerfile` multi-target; el tag es el commit (`IMAGE_TAG`). Configuración por entorno, nunca en la imagen.
-- Secretos: `pnpm prod:secrets` genera en `.local/prod/` (ignorado por git) contraseñas aleatorias, URLs, clave PII y un par de claves del emisor nuevo. Se montan como Compose secrets; `infra/docker/entrypoint.sh` convierte `*_FILE` en variables sólo dentro del proceso. Nada se reutiliza del `.env` de desarrollo.
+- Secretos: `pnpm prod:secrets` genera en `.local/prod/` (ignorado por git) contraseñas aleatorias, URLs, clave PII y un par de claves del emisor nuevo. Se montan como Compose secrets; `infra/docker/entrypoint.sh` convierte `*_FILE` en variables sólo dentro del proceso. Nada se reutiliza del `.env` de desarrollo. Como Compose (sin swarm) monta cada archivo tal cual y las apps corren como `node` (uid 1000), los archivos son legibles (0444) dentro de un directorio 0700 que ningún otro usuario del host puede recorrer; con 0600 el job `migrate` fallaba en los runners de GitHub (uid 1001).
 - Redis sólo coordina (sin persistencia, a propósito). PostgreSQL es la fuente de verdad de runs, aprobaciones, outbox y auditoría.
 - Proveedor de IA: plantilla determinística (`TemplateSynthesizer`, etiquetado SIMULATED). No hay llamadas a LLM ni embeddings pagos.
 

@@ -203,7 +203,13 @@ try {
 
   // k3s' service load balancer binds Traefik to the container's port 443, published on PORT.
   const t1 = performance.now();
-  const images = APPS.map((a) => `commerce-ai-ops/${a}:${TAG}`);
+  // overlays/local references the :local tag; images built for another IMAGE_TAG (CI uses the
+  // commit SHA) are tagged :local as well, so the manifests stay identical everywhere.
+  if (TAG !== 'local') {
+    for (const a of APPS)
+      docker(['tag', `commerce-ai-ops/${a}:${TAG}`, `commerce-ai-ops/${a}:local`]);
+  }
+  const images = APPS.map((a) => `commerce-ai-ops/${a}:local`);
   const tar = execFileSync('docker', ['save', ...images], { maxBuffer: 8 * 1024 ** 3 });
   docker(['exec', '-i', NAME, 'ctr', 'images', 'import', '-'], {
     input: tar,
@@ -352,7 +358,7 @@ try {
     'docker',
     ['build', '-q', '-t', 'commerce-ai-ops/api:drill-broken', '-'],
     {
-      input: `FROM commerce-ai-ops/api:${TAG}\nCMD ["node", "-e", "console.error('drill: broken release'); process.exit(1)"]\n`,
+      input: `FROM commerce-ai-ops/api:local\nCMD ["node", "-e", "console.error('drill: broken release'); process.exit(1)"]\n`,
     },
   );
   void broken;
@@ -392,7 +398,7 @@ try {
   ]);
   check(
     'kubectl rollout undo restores the previous image',
-    undone && image === `commerce-ai-ops/api:${TAG}`,
+    undone && image === 'commerce-ai-ops/api:local',
     image,
   );
   spawnSync('docker', ['image', 'rm', 'commerce-ai-ops/api:drill-broken'], { stdio: 'ignore' });

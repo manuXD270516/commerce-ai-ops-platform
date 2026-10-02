@@ -118,6 +118,17 @@ jobs:
       - run: IMAGE_TAG=${{ github.sha }} pnpm run prod:demo
       - run: IMAGE_TAG=${{ github.sha }} pnpm run prod:drill
       - run: IMAGE_TAG=${{ github.sha }} pnpm run k8s:local
+      - name: Container state and logs (on failure)
+        if: failure()
+        run: |
+          mkdir -p .smoke/compose-logs
+          docker compose -f infra/compose.prod.yaml ps -a | tee .smoke/compose-logs/ps.txt
+          docker compose -f infra/compose.prod.yaml logs --no-color --timestamps \
+            | tee .smoke/compose-logs/all.log
+          if docker ps -a --format '{{.Names}}' | grep -qx commerce-ai-ops-k3s; then
+            docker exec commerce-ai-ops-k3s kubectl -n commerce get all,events -o wide \
+              | tee .smoke/compose-logs/k3s.txt || true
+          fi
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
