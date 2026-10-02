@@ -8,7 +8,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "evals": "node dist/cli.js",
-    "release": "node dist/release.js"
+    "release": "node dist/release.js",
+    "adjudication": "node dist/adjudication-cli.js"
   },
   "dependencies": {
     "@commerce/ai": "workspace:*",

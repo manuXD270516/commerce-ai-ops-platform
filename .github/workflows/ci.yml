@@ -51,6 +51,8 @@ jobs:
           ghcr.io/gitleaks/gitleaks@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
           git /repo --no-banner --redact
       - run: pnpm install --frozen-lockfile
+      - name: Dependency audit (high and critical advisories fail the build)
+        run: pnpm audit --audit-level=high
       - run: pnpm run lint
       - run: pnpm run format:check
       - run: pnpm run build
@@ -61,6 +63,8 @@ jobs:
       - run: pnpm run contracts:check
       - run: pnpm run evals
       - run: pnpm run openspec:validate
+      - name: Static evidence site builds without private data
+        run: node --test infra/site/guard.test.mjs && node infra/site/build.mjs site
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:

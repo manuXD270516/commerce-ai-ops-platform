@@ -45,3 +45,6 @@ Thumbs.db
 *.tfvars
 !*.tfvars.example
 .terraform.lock.hcl.bak
+
+# Static evidence site (built in CI)
+/site/

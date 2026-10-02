@@ -22,8 +22,8 @@ M0 a M3 completados (2026-09-29) y M4–M11 (2026-10-01). M10 se cerró con exce
 | Fecha | Milestone | Excepción | Siguiente paso |
 |---|---|---|---|
 | 2026-10-01 | M10 | `intent_routing_macro_f1` 0,936 (gate 0,95) y `retrieval_mrr_at_5` 0,792 (gate 0,8) en holdout | nuevo ciclo de ajuste en dev con holdout nuevo; los umbrales no cambian |
-| 2026-10-01 | M10 | Etiquetas sin adjudicación de dos revisores (punto abierto, no realizado) | adjudicación humana |
-| 2026-10-01 | M11 | Alcance "listo para desplegar": nada aplicado en Azure | aplicar con autorización, suscripción, región, presupuesto, DNS/TLS y credencial federada ([runbook](runbook.md#aks-listo-para-desplegar-pendiente-de-autorización)) |
+| 2026-10-01 | M10 | Etiquetas sin adjudicación de dos revisores (punto abierto, no realizado) | change `adjudicate-eval-labels`: protocolo y herramientas listos, espera a un segundo revisor humano |
+| 2026-10-01 | M11 | Alcance "listo para desplegar": nada aplicado en Azure (listo, requiere una suscripción paga de Azure) | aplicar con autorización, suscripción, región, presupuesto, DNS/TLS y credencial federada ([runbook](runbook.md#aks-listo-para-desplegar-pendiente-de-autorización)) |
 
 M5 publica update_order con ejecución bloqueada mientras no exista aprobación verificable. M7 puede producir propuestas, no saltarse M8. El scaffold visual de M0 no equivale a la consola de M9. Observabilidad y tests acompañan cada milestone; M10 integra evidencia, no inaugura la calidad.
 

@@ -66,6 +66,10 @@ Backup lógico: `docker compose -f infra/compose.prod.yaml exec -T postgres pg_d
 - `pnpm evals:release`: holdout ×3, gates de `evals/gates/gates.v0.json`; sale con 1 si un gate falla.
 - `pnpm load`: 5 min de warm-up + 15 min con 10 sesiones contra los builds locales (latencia de lectura y alertas MEASURED; latencia/tokens del workflow con proveedor SIMULATED).
 
+## 8b. Sitio público de evidencia
+
+`node infra/site/build.mjs` genera `site/index.html` desde la evidencia archivada (sin backend) y se niega a escribirlo si encuentra rutas locales, cadenas de conexión, tokens, claves o emails (`infra/site/guard.mjs`, `node --test infra/site/guard.test.mjs`). `.github/workflows/pages.yml` lo publica en https://manuxd270516.github.io/commerce-ai-ops-platform/ sólo después de un `ci` verde en `main`.
+
 ## 9. Tiempos observados
 
 Última ejecución (2026-10-01, una observación cada uno; detalle en `openspec/changes/archive/2026-10-01-add-cloud-deployment-demo/verification.md`). No son SLA.
@@ -83,7 +87,7 @@ Backup lógico: `docker compose -f infra/compose.prod.yaml exec -T postgres pg_d
 
 ## AKS (listo para desplegar, pendiente de autorización)
 
-Decisión del dueño del repo (2026-10-01): el destino es Azure Kubernetes Service, con alcance "listo para desplegar". Nada se aplicó en Azure; aplicar es un paso futuro que requiere autorización explícita.
+**Estado: listo, requiere una suscripción paga de Azure.** Decisión del dueño del repo (2026-10-01): el destino es Azure Kubernetes Service, con alcance "listo para desplegar". Nada se aplicó en Azure; aplicar es un paso futuro que requiere autorización explícita.
 
 ### Artefactos
 
