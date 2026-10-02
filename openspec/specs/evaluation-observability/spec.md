@@ -1,7 +1,7 @@
 # evaluation-observability Specification
 
 ## Purpose
-Garantizar que el sistema se construye, verifica, evalúa, observa y despliega de forma reproducible, y que ningún objetivo, simulación o dato no medido se presenta como resultado. Cubre el bootstrap de M0, el ciclo de vida spec-driven, los gates de evaluación, trazas y auditoría (M10) y el despliegue resiliente listo para AKS con recuperación ensayada (M11; aplicarlo en Azure es un paso futuro que requiere autorización explícita). Excepciones aceptadas de M10 (2026-10-01): la release del holdout falla `intent_routing_macro_f1` (0,936 < 0,95) y `retrieval_mrr_at_5` (0,792 < 0,8) y las etiquetas no tienen adjudicación de dos revisores; ver `openspec/changes/archive/2026-10-01-add-evaluation-gates/design.md` (decisión 9). Ninguna excepción aplica a gates de seguridad.
+Garantizar que el sistema se construye, verifica, evalúa, observa y despliega de forma reproducible, y que ningún objetivo, simulación o dato no medido se presenta como resultado. Cubre el bootstrap de M0, el ciclo de vida spec-driven, los gates de evaluación, trazas y auditoría (M10) y el despliegue resiliente listo para AKS con recuperación ensayada (M11; aplicarlo en Azure es un paso futuro que requiere autorización explícita), y la publicación de esa evidencia como sitio estático (2026-10-02). Excepciones aceptadas de M10 (2026-10-01): la release del holdout falla `intent_routing_macro_f1` (0,936 < 0,95) y `retrieval_mrr_at_5` (0,792 < 0,8) y las etiquetas no tienen adjudicación de dos revisores; ver `openspec/changes/archive/2026-10-01-add-evaluation-gates/design.md` (decisión 9). Ninguna excepción aplica a gates de seguridad.
 
 ## Requirements
 
@@ -75,3 +75,18 @@ El MVP SHALL tener un entorno local reproducible y una configuración de desplie
 #### Scenario: Secrets never inline
 - **WHEN** se inspeccionan los manifiestos, la IaC y el workflow de despliegue
 - **THEN** ningún secreto aparece en ellos: en AKS llegan desde Key Vault por el driver CSI con workload identity, y el despliegue usa OIDC federado sin claves guardadas
+
+### Requirement: Public static evidence site
+El repositorio SHALL publicar en GitHub Pages un sitio estático generado sólo desde la evidencia archivada, con el estado MEASURED/SIMULATED de cada resultado y las excepciones aceptadas visibles, publicado únicamente después de que CI pase para el mismo commit y sin rutas locales, credenciales, tokens, claves ni PII.
+
+#### Scenario: Publication after green CI
+- **WHEN** `ci` termina con éxito en `main`
+- **THEN** el workflow de Pages construye el sitio desde ese commit y lo despliega, y si `ci` falla no se publica nada
+
+#### Scenario: Private data in the evidence
+- **WHEN** el contenido a publicar contiene una ruta local, una cadena de conexión, un token, una clave privada o un email
+- **THEN** el build termina con error y no escribe la página
+
+#### Scenario: Honest labels
+- **WHEN** un visitante lee los resultados de evaluación
+- **THEN** cada gate muestra su estado MEASURED o SIMULATED, los gates fallidos aparecen como fallidos y las excepciones aceptadas están explicadas
